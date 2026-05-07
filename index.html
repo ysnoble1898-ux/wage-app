@@ -1,0 +1,3500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연세노블병원 근무수당 통합관리 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK (compat) -->
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init("gy8aW0JZC5dSsqTMg");</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<!-- ⚠️ Firebase 설정 - 본인의 프로젝트 정보로 교체하세요 -->
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAt0rzH-gMapsahYteOVc91eOVYHmPuHrY",
+  authDomain: "pay-management-19331.firebaseapp.com",
+  projectId: "pay-management-19331",
+  storageBucket: "pay-management-19331.firebasestorage.app",
+  messagingSenderId: "579533892212",
+  appId: "1:579533892212:web:86b4e4dc16552f7fe33f21",
+  measurementId: "G-0GNHBGRKDE"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb = firebase.firestore();
+fbDb.enablePersistence({ synchronizeTabs: true }).catch(err => console.warn('Offline persistence:', err.code));
+</script>
+<style>
+  :root{
+    --bg: #f6f1e8;
+    --bg-paper: #fdfaf3;
+    --bg-card: #ffffff;
+    --ink: #2a2620;
+    --ink-soft: #5b5249;
+    --ink-mute: #8a7f72;
+    --line: #ddd1bd;
+    --line-soft: #ebe2d0;
+    --accent: #4a6a55;
+    --accent-soft: #7d9a85;
+    --accent-bg: #e8efe9;
+    --warm: #c47a5a;
+    --warm-soft: #e8b89a;
+    --warm-bg: #f7e9dd;
+    --gold: #b08940;
+    --danger: #a04030;
+    --shadow-sm: 0 1px 2px rgba(60,40,20,.06);
+    --shadow: 0 4px 12px rgba(60,40,20,.08);
+    --shadow-lg: 0 12px 32px rgba(60,40,20,.12);
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html, body{height:100%;}
+  body{
+    font-family: 'Noto Sans KR', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(at 20% 0%, #f0e6d3 0, transparent 40%),
+      radial-gradient(at 80% 100%, #ede4d0 0, transparent 50%);
+    min-height: 100vh;
+  }
+  .serif{font-family:'Noto Serif KR', serif;}
+  .mono{font-family:'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;}
+
+  /* ===== Login Overlay ===== */
+  .login-overlay{position:fixed; inset:0; background:linear-gradient(135deg,#f6f1e8 0%,#ede4d0 100%); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px;}
+  .login-card{background:var(--bg-paper); padding:40px 36px; border-radius:12px; box-shadow:var(--shadow-lg); width:100%; max-width:380px; border:1px solid var(--line); animation:loginFadeIn .3s ease;}
+  @keyframes loginFadeIn { from{opacity:0; transform:translateY(8px);} to{opacity:1;} }
+  .login-card h2{font-family:'Noto Serif KR', serif; font-size:22px; margin-bottom:4px; color:var(--ink);}
+  .login-card .login-sub{font-size:12px; color:var(--ink-mute); margin-bottom:24px; letter-spacing:.03em;}
+  .login-card .field{ margin-bottom:12px; }
+  .login-card input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius); font-family:inherit; font-size:14px; background:#fff;}
+  .login-card input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-bg);}
+  .login-card button.primary{width:100%; padding:11px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius); font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; margin-top:8px;}
+  .login-card button.primary:hover{background:#3c5746;}
+  .login-card button.primary:disabled{opacity:.6; cursor:wait;}
+  .login-error{color:var(--danger); font-size:12px; margin-top:10px; padding:8px 10px; background:#fbeae6; border-radius:4px; display:none;}
+  .login-error.show{display:block;}
+  .login-foot{margin-top:18px; padding-top:16px; border-top:1px solid var(--line-soft); font-size:11px; color:var(--ink-mute); line-height:1.6;}
+  .user-chip{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:var(--accent-bg); border-radius:14px; font-size:12px; color:var(--accent); font-weight:500;}
+  .user-chip::before{content:'●'; color:#4caf50; font-size:10px;}
+  .sync-indicator{font-size:11px; color:var(--ink-mute); padding:3px 8px; background:var(--line-soft); border-radius:10px;}
+  .sync-indicator.syncing{color:var(--accent); background:var(--accent-bg);}
+
+  /* ===== Layout ===== */
+  .app{
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 28px 32px 80px;
+  }
+  header.masthead{
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand{display:flex; flex-direction:column; gap:4px;}
+  .brand .pre{
+    font-size: 11px; letter-spacing: .25em; color: var(--ink-mute);
+    text-transform: uppercase; font-weight: 500;
+  }
+  .brand h1{
+    font-family:'Noto Serif KR', serif;
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  .brand .sub{color: var(--ink-soft); font-size:13px; margin-top:2px;}
+
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap;}
+  .btn{
+    font-family:'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--bg-paper);
+    color: var(--ink);
+    cursor: pointer;
+    transition: all .15s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:hover{background: var(--accent-bg); border-color: var(--accent-soft);}
+  .btn.primary{
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  .btn.primary:hover{background: #3c5746;}
+  .btn.warm{background: var(--warm); color:#fff; border-color: var(--warm);}
+  .btn.warm:hover{background: #a86547;}
+  .btn.danger{background: transparent; color: var(--danger); border-color: var(--danger);}
+  .btn.danger:hover{background: var(--danger); color:#fff;}
+  .btn.ghost{background: transparent;}
+  .btn.sm{padding: 5px 10px; font-size: 12px;}
+  .btn.icon{padding: 6px 8px;}
+
+  /* ===== Tabs ===== */
+  nav.tabs{
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  nav.tabs button{
+    background: transparent;
+    border: none;
+    padding: 14px 22px;
+    font-family:'Noto Serif KR', serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    position: relative;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: all .15s;
+  }
+  nav.tabs button:hover{color: var(--ink);}
+  nav.tabs button.active{
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 700;
+  }
+  nav.tabs button .num{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-right: 8px;
+    font-weight: 400;
+  }
+  nav.tabs button.active .num{color: var(--accent-soft);}
+
+  /* ===== Panels ===== */
+  .panel{
+    display: none;
+    animation: fadein .25s ease;
+  }
+  .panel.active{display:block;}
+  @keyframes fadein {
+    from{opacity:0; transform: translateY(4px);}
+    to{opacity:1; transform: translateY(0);}
+  }
+  .panel-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .panel-head h2{
+    font-family:'Noto Serif KR', serif;
+    font-weight: 600;
+    font-size: 20px;
+    color: var(--ink);
+  }
+  .panel-head .desc{color: var(--ink-soft); font-size:13px; margin-top:2px;}
+
+  /* ===== Card / Table ===== */
+  .card{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .card-head{
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--bg-paper);
+    display:flex; justify-content:space-between; align-items:center;
+    gap: 12px; flex-wrap:wrap;
+  }
+  .card-head h3{
+    font-family:'Noto Serif KR', serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .card-body{padding: 16px 18px;}
+  .card-body.tight{padding: 0;}
+
+  table.dt{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.dt thead th{
+    background: var(--bg-paper);
+    border-bottom: 2px solid var(--line);
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--ink-soft);
+    font-size: 12px;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  table.dt tbody td{
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: middle;
+  }
+  table.dt tbody tr:hover{background: #fbf8f1;}
+  table.dt tbody tr:last-child td{border-bottom:none;}
+  table.dt td.num, table.dt th.num{text-align:right; font-variant-numeric: tabular-nums; font-family:'JetBrains Mono', monospace;}
+  table.dt td.center, table.dt th.center{text-align:center;}
+  table.dt tfoot td{
+    padding: 10px 12px;
+    background: var(--bg-paper);
+    font-weight: 600;
+    border-top: 2px solid var(--line);
+  }
+  table.dt input.cell, table.dt select.cell{
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font: inherit;
+    color: var(--ink);
+  }
+  table.dt input.cell:hover, table.dt select.cell:hover{border-color: var(--line);}
+  table.dt input.cell:focus, table.dt select.cell:focus{
+    outline: none; border-color: var(--accent);
+    background: #fff;
+  }
+  table.dt input.cell.num{text-align:right; font-family:'JetBrains Mono', monospace;}
+
+  .empty{
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 13px;
+  }
+  .empty .ico{font-size:32px; margin-bottom:8px; opacity:.5;}
+
+  /* ===== Forms ===== */
+  .form-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+  .field label .req{color: var(--warm);}
+  .field input, .field select, .field textarea{
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--bg-paper);
+    color: var(--ink);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+  .field input.num{text-align: right; font-family:'JetBrains Mono', monospace;}
+  .field .help{font-size:11px; color: var(--ink-mute);}
+  .form-actions{display:flex; gap:8px; margin-top: 16px;}
+
+  /* ===== Modal ===== */
+  .modal-back{
+    position: fixed; inset:0;
+    background: rgba(40,30,20,.45);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .modal-back.show{display: flex;}
+  .modal{
+    background: var(--bg-paper);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: min(720px, 95vw);
+    max-height: 92vh;
+    overflow: auto;
+    border: 1px solid var(--line);
+  }
+  .modal-head{
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex; justify-content: space-between; align-items:center;
+  }
+  .modal-head h3{font-family:'Noto Serif KR', serif; font-size: 17px;}
+  .modal-body{padding: 20px 22px;}
+  .modal-close{
+    background: transparent; border: none; cursor: pointer;
+    font-size: 22px; color: var(--ink-mute); width: 32px; height: 32px;
+    border-radius: 50%;
+  }
+  .modal-close:hover{background: var(--line-soft); color: var(--ink);}
+
+  /* ===== Filter row ===== */
+  .filter-row{
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+  }
+  .filter-row select, .filter-row input{
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font: inherit;
+    font-size: 13px;
+    background: #fff;
+  }
+  .filter-row label{font-size: 12px; color: var(--ink-soft); font-weight:500;}
+  .filter-row .spacer{flex:1;}
+
+  /* ===== Stats ===== */
+  .stats{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .stat{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat::before{
+    content:'';
+    position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent);
+  }
+  .stat.warm::before{background: var(--warm);}
+  .stat.gold::before{background: var(--gold);}
+  .stat .lbl{
+    font-size: 11px; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: 4px;
+  }
+  .stat .val{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .stat .val .unit{
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    color: var(--ink-mute);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+
+  /* ===== Tag / chip ===== */
+  .chip{
+    display: inline-flex; align-items: center;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+  .chip.warm{background: var(--warm-bg); color: var(--warm);}
+  .chip.gold{background: #f3ead2; color: var(--gold);}
+  .chip.gray{background: var(--line-soft); color: var(--ink-soft);}
+
+  /* ===== Section heading ===== */
+  .sect-h{
+    display: flex; align-items: baseline; gap: 10px;
+    margin: 18px 0 10px;
+    padding-left: 4px;
+  }
+  .sect-h h4{
+    font-family: 'Noto Serif KR', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .sect-h .line{flex:1; border-bottom: 1px dashed var(--line); height:1px;}
+  .sect-h .hint{font-size: 11px; color: var(--ink-mute);}
+
+  /* ===== Payslip (급여명세서) ===== */
+  .payslip{
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    padding: 0;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .payslip-head{
+    text-align: center;
+    padding: 22px 24px 16px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--bg-paper);
+  }
+  .payslip-head .hospital{
+    font-family:'Noto Serif KR', serif;
+    font-size: 14px;
+    color: var(--ink-soft);
+    letter-spacing: .15em;
+    margin-bottom: 6px;
+  }
+  .payslip-head h2{
+    font-family:'Noto Serif KR', serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: .25em;
+    margin: 0;
+    color: var(--ink);
+  }
+  .payslip-head .period{
+    font-family:'Noto Serif KR', serif;
+    font-size: 14px;
+    margin-top: 4px;
+    color: var(--ink-soft);
+    letter-spacing: .05em;
+  }
+
+  .payslip-info{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--ink);
+    background: #fff;
+  }
+  .payslip-info .row{
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .payslip-info .row:nth-child(odd){border-right: 1px solid var(--line);}
+  .payslip-info .row:nth-last-child(-n+2){border-bottom: none;}
+  .payslip-info .row > div{
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .payslip-info .row .lbl{
+    background: var(--bg-paper);
+    font-weight: 500;
+    color: var(--ink-soft);
+    border-right: 1px solid var(--line);
+  }
+  .payslip-info .row .val{font-weight: 500;}
+
+  .payslip-body{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--ink);
+  }
+  .payslip-col{
+    border-right: 1px solid var(--ink);
+  }
+  .payslip-col:last-child{border-right: none;}
+  .payslip-col h3{
+    text-align: center;
+    padding: 10px;
+    font-family:'Noto Serif KR', serif;
+    font-size: 15px;
+    font-weight: 600;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-bottom: 1px solid var(--ink);
+    letter-spacing: .15em;
+  }
+  .payslip-col.deduct h3{background: var(--warm-bg); color: var(--warm);}
+  .payslip-col table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .payslip-col table td{
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .payslip-col table td:first-child{
+    background: var(--bg-paper);
+    color: var(--ink-soft);
+    width: 50%;
+  }
+  .payslip-col table td:last-child{
+    text-align: right;
+    font-family:'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .payslip-col table td.indent:first-child{
+    padding-left: 24px;
+    color: var(--ink-mute);
+    font-size: 12px;
+  }
+  .payslip-col table tr.subtotal td{
+    background: var(--bg-paper) !important;
+    font-weight: 600;
+    border-top: 1px solid var(--ink);
+  }
+  .payslip-col table tr.subtotal td:first-child{
+    color: var(--ink) !important;
+  }
+
+  .payslip-net{
+    background: var(--ink);
+    color: var(--bg-paper);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .payslip-net .lbl{
+    font-family:'Noto Serif KR', serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: .25em;
+  }
+  .payslip-net .val{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .payslip-net .val .unit{
+    font-family:'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    margin-left: 4px;
+    opacity: .8;
+  }
+
+  .payslip-foot{
+    padding: 18px 24px 22px;
+    background: var(--bg-paper);
+    border-top: 1px solid var(--line);
+  }
+  .payslip-foot .note{
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  /* Approver signature box */
+  .approver-box{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--ink);
+    margin-top: 8px;
+    background: #fff;
+  }
+  .approver-cell{
+    border-right: 1px solid var(--ink);
+    text-align: center;
+  }
+  .approver-cell:last-child{border-right: none;}
+  .approver-cell .role{
+    padding: 8px 6px;
+    background: var(--bg-paper);
+    border-bottom: 1px solid var(--ink);
+    font-family:'Noto Serif KR', serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: .15em;
+    color: var(--ink);
+  }
+  .approver-cell .role-edit{
+    background: transparent;
+    border: 1px dashed transparent;
+    text-align: center;
+    font: inherit;
+    color: inherit;
+    padding: 2px 6px;
+    width: 100%;
+    border-radius: 3px;
+  }
+  .approver-cell .role-edit:hover{background: var(--accent-bg); border-color: var(--accent-soft);}
+  .approver-cell .role-edit:focus{
+    background: #fff;
+    border-color: var(--accent);
+    outline: none;
+  }
+  .approver-cell .stamp{
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-mute);
+    font-size: 12px;
+  }
+
+  .payslip-empty-card{
+    background: var(--bg-paper);
+    padding: 30px;
+    text-align: center;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    color: var(--ink-mute);
+  }
+
+  /* ===== Print ===== */
+  .print-only{display:none;}
+  @media print{
+    @page{ size: A4 portrait; margin: 12mm; }
+    body{background: white !important; padding: 0; font-size:10.5pt;}
+    body::before{content:none;}
+    .app{padding:0; max-width: none;}
+    header.masthead, nav.tabs, .toolbar, .filter-row, .panel-head .actions,
+    .no-print, .modal-back, .stats, .panel-head{display:none !important;}
+    .panel{display:block !important;}
+    .panel:not(.active){display:none !important;}
+    .card{box-shadow:none; border:1px solid #999; page-break-inside: avoid; margin-bottom:12px;}
+    .stat{box-shadow:none; border:1px solid #999;}
+    .print-only{display:block;}
+    table.dt thead th{background:#f0f0f0 !important; -webkit-print-color-adjust: exact;}
+
+    /* Payslip print layout */
+    .payslip{
+      box-shadow: none !important;
+      border: 1.5px solid #000 !important;
+      margin-bottom: 0 !important;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    .payslip:last-child{page-break-after: auto;}
+    .payslip-head h2{font-size: 22pt;}
+    .payslip-net{
+      background: #2a2620 !important;
+      color: #fff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .payslip-col h3{
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .approver-cell .role{
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .approver-cell .stamp{ height: 60px !important; }
+
+    /* Hide non-payslip elements when printing settlement panel */
+    #panel-settlement.active .panel-head,
+    #panel-settlement.active > .filter-row,
+    #panel-settlement.active .stats{display:none !important;}
+  }
+
+  /* small responsive */
+  @media (max-width: 800px){
+    .app{padding: 16px;}
+    .brand h1{font-size: 22px;}
+    nav.tabs button{padding: 12px 14px; font-size: 13px;}
+  }
+
+  /* details summary styling */
+  details.disclosure{
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-paper);
+    margin-bottom: 14px;
+  }
+  details.disclosure summary{
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  details.disclosure summary::-webkit-details-marker{display:none;}
+  details.disclosure summary::before{
+    content: '▸';
+    color: var(--ink-mute);
+    transition: transform .15s;
+    font-size: 11px;
+  }
+  details.disclosure[open] summary::before{transform: rotate(90deg);}
+  details.disclosure .disclosure-body{
+    padding: 6px 14px 14px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* row action buttons */
+  .row-actions{display: flex; gap: 4px; justify-content:flex-end;}
+  .row-actions button{
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+    background: white;
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+  .row-actions button:hover{background: var(--accent-bg); color: var(--accent); border-color: var(--accent-soft);}
+  .row-actions button.del:hover{background: #fbeae6; color: var(--danger); border-color: var(--danger);}
+
+  /* toast */
+  .toast{
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--ink);
+    color: var(--bg-paper);
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 200;
+    font-size: 13px;
+    transform: translateY(20px); opacity: 0;
+    transition: all .25s;
+    pointer-events: none;
+  }
+  .toast.show{transform: translateY(0); opacity: 1;}
+  .toast.success{background: var(--accent);}
+  .toast.warn{background: var(--warm);}
+
+  /* settlement detail */
+  .settle-grid{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .settle-grid .item{
+    padding: 8px 12px;
+    display: flex; justify-content: space-between;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 12.5px;
+  }
+  .settle-grid .item:nth-child(odd){border-right: 1px solid var(--line-soft);}
+  .settle-grid .item .lbl{color: var(--ink-soft);}
+  .settle-grid .item .val{font-family:'JetBrains Mono', monospace; font-weight: 500;}
+  .settle-grid .item.total{
+    background: var(--accent-bg);
+    border-bottom: none;
+    font-weight: 600;
+    grid-column: 1 / -1;
+    border-right: none !important;
+  }
+  .settle-grid .item.total .val{color: var(--accent); font-size: 15px;}
+
+  .small-note{
+    font-size: 11px;
+    color: var(--ink-mute);
+    padding: 4px 8px;
+    background: #fdf8e8;
+    border-left: 2px solid var(--gold);
+    margin: 6px 0;
+  }
+
+  /* keyboard help */
+  kbd{
+    background: var(--line-soft);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-card">
+    <h2 class="serif">로그인</h2>
+    <div class="login-sub">YONSEI NOBLE HOSPITAL · WAGE MANAGEMENT</div>
+    <div class="field"><input type="email" id="loginEmail" placeholder="이메일" autocomplete="username"></div>
+    <div class="field"><input type="password" id="loginPassword" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+    <button class="primary" id="loginBtn" onclick="login()">로그인</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-foot">
+      • 계정은 관리자가 Firebase Console에서 생성합니다<br>
+      • 모든 데이터는 클라우드에 자동 저장 · 동기화됩니다<br>
+      • 비밀번호 분실 시 관리자에게 재설정을 요청하세요
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- Print header (only visible when printing) -->
+  <div class="print-only print-header">
+    <h1 class="serif">연세노블병원 근무수당 명세서</h1>
+    <div class="sub" id="printSub"></div>
+  </div>
+
+  <header class="masthead no-print">
+    <div class="brand">
+      <span class="pre">YONSEI NOBLE HOSPITAL · WAGE MANAGEMENT</span>
+      <h1>근무수당 통합관리</h1>
+      <div class="sub">가정간호 인센티브 · 연장/휴일근무 · 월별 정산
+        <span class="user-chip" id="currentUser" style="margin-left:8px;"></span>
+        <span class="sync-indicator" id="syncStatus" style="margin-left:4px;"></span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn ghost" onclick="exportJSON()">📥 백업 다운로드</button>
+      <button class="btn ghost" onclick="document.getElementById('importFile').click()">📤 백업 복원</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button class="btn" onclick="window.print()">🖨 인쇄/PDF</button>
+      <button class="btn danger sm" onclick="resetAll()">초기화</button>
+      <button class="btn ghost sm" onclick="logout()">로그아웃</button>
+    </div>
+  </header>
+
+  <nav class="tabs no-print">
+    <button class="tab-btn active" data-tab="dashboard"><span class="num">01</span>대시보드</button>
+    <button class="tab-btn" data-tab="employees"><span class="num">02</span>직원·수당단가</button>
+    <button class="tab-btn" data-tab="homeNursing"><span class="num">03</span>가정간호 인센티브</button>
+    <button class="tab-btn" data-tab="overtime"><span class="num">04</span>연장·휴일근무</button>
+    <button class="tab-btn" data-tab="settlement"><span class="num">05</span>월별 정산</button>
+    <button class="tab-btn" data-tab="help"><span class="num">06</span>사용 설명서</button>
+  </nav>
+
+  <!-- ============================================================
+       PANEL: DASHBOARD
+  ============================================================ -->
+  <section class="panel active" id="panel-dashboard">
+    <div class="panel-head">
+      <div>
+        <h2>대시보드</h2>
+        <div class="desc">데이터 현황과 빠른 시작 안내</div>
+      </div>
+    </div>
+
+    <div class="stats" id="dashStats"></div>
+
+    <div class="card">
+      <div class="card-head"><h3 class="serif">시작하기</h3></div>
+      <div class="card-body">
+        <ol style="padding-left: 22px; line-height: 1.9; color: var(--ink-soft); font-size: 13.5px;">
+          <li><strong style="color:var(--ink)">[직원·수당단가]</strong> 탭에서 직원을 등록하고, 직원별 인센티브 단가와 시급을 설정합니다. 사람마다 다른 단가 설정이 가능합니다.</li>
+          <li><strong style="color:var(--ink)">[가정간호 인센티브]</strong> 탭에서 월별로 직원별 방문 건수를 입력하면 자동 계산됩니다.</li>
+          <li><strong style="color:var(--ink)">[연장·휴일근무]</strong> 탭에서 일자별 연장/야간/휴일 근무를 기록합니다. 시급 × 시간 × 가산율로 자동 계산.</li>
+          <li><strong style="color:var(--ink)">[월별 정산]</strong> 탭에서 직원별 월 합계 정산서를 확인·인쇄할 수 있습니다.</li>
+          <li>작업 후 우상단 <strong style="color:var(--ink)">[데이터 내보내기]</strong>로 JSON 백업을 저장하세요. <strong style="color:var(--ink)">[불러오기]</strong>로 언제든 복원할 수 있습니다.</li>
+        </ol>
+        <div class="small-note" style="margin-top:14px;">
+          💡 모든 데이터는 브라우저 메모리에 보관됩니다. 페이지를 새로고침하기 전에 반드시 [데이터 내보내기]로 JSON 파일로 저장해주세요.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3 class="serif">최근 입력 내역</h3></div>
+      <div class="card-body tight">
+        <table class="dt" id="dashRecent">
+          <thead><tr>
+            <th>유형</th><th>직원</th><th>일자/월</th><th class="num">금액</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PANEL: EMPLOYEES
+  ============================================================ -->
+  <section class="panel" id="panel-employees">
+    <div class="panel-head">
+      <div>
+        <h2>직원 관리 · 수당 단가</h2>
+        <div class="desc">직원을 등록하고 사람별로 인센티브 단가와 시급을 다르게 설정할 수 있습니다.</div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" onclick="openEmployeeModal()">＋ 직원 추가</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body tight">
+        <table class="dt" id="empTable">
+          <thead><tr>
+            <th>이름</th>
+            <th>직급</th>
+            <th>부서</th>
+            <th>입사일</th>
+            <th class="num">기본급(월)</th>
+            <th class="num">건당 인센티브</th>
+            <th class="num">시급(통상)</th>
+            <th class="num">상태</th>
+            <th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="small-note">
+      💡 위 표에서 직원 행을 클릭하면 <strong>전체 수당 단가(야간/주말/휴일 가산, 차량유지비, 위험수당, 시급 가산율 등)</strong>를 사람별로 설정할 수 있습니다.
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PANEL: HOME NURSING INCENTIVE
+  ============================================================ -->
+  <section class="panel" id="panel-homeNursing">
+    <div class="panel-head">
+      <div>
+        <h2>가정간호 인센티브</h2>
+        <div class="desc">월별 · 직원별 방문 건수와 기타 가산을 입력하면 인센티브가 자동 계산됩니다.</div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" onclick="openHomeNursingModal()">＋ 월별 기록 추가</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <label>년월:</label>
+      <input type="month" id="hnFilterMonth" onchange="renderHomeNursing()">
+      <label>직원:</label>
+      <select id="hnFilterEmp" onchange="renderHomeNursing()"><option value="">전체</option></select>
+      <div class="spacer"></div>
+      <button class="btn sm ghost" onclick="document.getElementById('hnFilterMonth').value='';document.getElementById('hnFilterEmp').value='';renderHomeNursing()">필터 초기화</button>
+    </div>
+
+    <div class="card">
+      <div class="card-body tight">
+        <table class="dt" id="hnTable">
+          <thead><tr>
+            <th>년월</th>
+            <th>직원</th>
+            <th class="num">총건수</th>
+            <th class="num">일반</th>
+            <th class="num">야간</th>
+            <th class="num">주말</th>
+            <th class="num">휴일</th>
+            <th class="num">기본인센</th>
+            <th class="num">가산</th>
+            <th class="num">추가항목</th>
+            <th class="num">월정액</th>
+            <th class="num">합계</th>
+            <th></th>
+          </tr></thead>
+          <tbody></tbody>
+          <tfoot><tr>
+            <td colspan="2">합계</td>
+            <td class="num" id="hnSumVisits">0</td>
+            <td colspan="4"></td>
+            <td class="num" id="hnSumBase">0</td>
+            <td class="num" id="hnSumBonus">0</td>
+            <td class="num" id="hnSumAdd">0</td>
+            <td class="num" id="hnSumOther">0</td>
+            <td class="num" id="hnSumTotal">0</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PANEL: OVERTIME
+  ============================================================ -->
+  <section class="panel" id="panel-overtime">
+    <div class="panel-head">
+      <div>
+        <h2>연장·휴일근무 기록</h2>
+        <div class="desc">일자별 근무 유형(연장/야간/휴일/야간연장)과 시간을 입력하면 가산금이 자동 산출됩니다.</div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" onclick="openOvertimeModal()">＋ 근무기록 추가</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <label>년월:</label>
+      <input type="month" id="otFilterMonth" onchange="renderOvertime()">
+      <label>직원:</label>
+      <select id="otFilterEmp" onchange="renderOvertime()"><option value="">전체</option></select>
+      <label>유형:</label>
+      <select id="otFilterType" onchange="renderOvertime()">
+        <option value="">전체</option>
+        <option value="overtime">연장근무</option>
+        <option value="night">야간근무</option>
+        <option value="nightOvertime">야간연장</option>
+        <option value="holiday">휴일근무</option>
+        <option value="nightHoliday">야간휴일</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn sm ghost" onclick="resetOvertimeFilter()">필터 초기화</button>
+    </div>
+
+    <div class="card">
+      <div class="card-body tight">
+        <table class="dt" id="otTable">
+          <thead><tr>
+            <th>일자</th>
+            <th>요일</th>
+            <th>직원</th>
+            <th>유형</th>
+            <th>시작</th>
+            <th>종료</th>
+            <th class="num">시간</th>
+            <th class="num">시급</th>
+            <th class="num">가산율</th>
+            <th class="num">금액</th>
+            <th>사유/승인</th>
+            <th></th>
+          </tr></thead>
+          <tbody></tbody>
+          <tfoot><tr>
+            <td colspan="6">합계</td>
+            <td class="num" id="otSumHours">0</td>
+            <td colspan="2"></td>
+            <td class="num" id="otSumAmt">0</td>
+            <td colspan="2"></td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PANEL: SETTLEMENT
+  ============================================================ -->
+  <section class="panel" id="panel-settlement">
+    <div class="panel-head no-print">
+      <div>
+        <h2>월별 정산 · 급여명세서</h2>
+        <div class="desc">기본급 + 가정간호 인센티브 + 연장근무 - 4대보험·세금 = 실수령액. 결재 직책명은 직접 클릭하여 수정할 수 있습니다.</div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" onclick="window.print()">🖨 급여명세서 인쇄/PDF</button>
+        <button class="btn" style="background:var(--accent-bg);color:var(--accent);border-color:var(--accent-soft);" onclick="sendAllPayslips()">✉ 이메일 일괄 발송</button>
+      </div>
+    </div>
+
+    <div class="filter-row no-print">
+      <label>정산 년월:</label>
+      <input type="month" id="settleMonth" onchange="renderSettlement()">
+      <label>직원:</label>
+      <select id="settleEmp" onchange="renderSettlement()"><option value="">전체 직원</option></select>
+      <div class="spacer"></div>
+      <span class="chip gold" id="settleMonthLabel"></span>
+    </div>
+
+    <div id="settleContent"></div>
+  </section>
+
+  <!-- ============================================================
+       PANEL: HELP / 사용 설명서
+  ============================================================ -->
+  <section class="panel" id="panel-help">
+    <div class="panel-head no-print">
+      <div>
+        <h2>사용 설명서</h2>
+        <div class="desc">처음 사용하시는 분을 위한 단계별 안내</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3 class="serif">📋 처음 사용 시 — 5단계 설정</h3></div>
+      <div class="card-body">
+        <div style="display:grid; gap:18px;">
+          <!-- Step 1 -->
+          <div style="display:grid; grid-template-columns:60px 1fr; gap:14px; align-items:start;">
+            <div style="background:var(--accent); color:#fff; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Noto Serif KR',serif; font-size:18px;">1</div>
+            <div>
+              <h4 style="font-family:'Noto Serif KR',serif; font-size:15px; margin-bottom:6px; color:var(--ink);">자동저장 활성화 <span class="chip">필수 권장</span></h4>
+              <p style="color:var(--ink-soft); font-size:13px; line-height:1.7; margin-bottom:8px;">
+                상단 우측 <strong>⚠️ 자동저장 미설정</strong> 칩을 클릭한 후 <strong>📄 새 데이터 파일 만들기</strong>를 선택하세요. 저장할 파일을 지정하면 모든 변경사항이 자동으로 그 파일에 저장됩니다.
+              </p>
+              <div class="small-note" style="background:#fdf3e8; border-left-color:var(--warm);">
+                ⚠️ <strong>Chrome / Edge / Opera 브라우저</strong>만 지원합니다. Safari·Firefox·모바일은 작동하지 않습니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div style="display:grid; grid-template-columns:60px 1fr; gap:14px; align-items:start;">
+            <div style="background:var(--accent); color:#fff; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Noto Serif KR',serif; font-size:18px;">2</div>
+            <div>
+              <h4 style="font-family:'Noto Serif KR',serif; font-size:15px; margin-bottom:6px; color:var(--ink);">직원 등록 + 수당 단가 설정</h4>
+              <p style="color:var(--ink-soft); font-size:13px; line-height:1.7; margin-bottom:8px;">
+                <strong>[02 직원·수당단가]</strong> 탭 → <strong>＋ 직원 추가</strong>를 눌러 직원을 등록합니다. 직원별로 다음 항목을 설정하세요:
+              </p>
+              <ul style="font-size:12.5px; color:var(--ink-soft); line-height:1.9; padding-left:20px;">
+                <li><strong>기본 정보</strong>: 이름, 직급, 부서, 입사일</li>
+                <li><strong>기본급</strong>: 매월 정액 본봉 (4대보험 산정 기준)</li>
+                <li><strong>방문 건당 단가</strong>: 일반/야간/주말/휴일 가산 (필요시)</li>
+                <li><strong>추가 건당 항목</strong>: 추가인센·응급콜·개인집·백신/검진·엔진오일 단가
+                  <br>📌 <strong>추가인센 적용 시작 건수</strong>를 설정하면 그 건수 초과분이 자동으로 추가인센으로 계산됩니다.
+                </li>
+                <li><strong>월정액 수당</strong>: 차량유지비, 위험수당, 특수업무수당</li>
+                <li><strong>공제 항목</strong>: 부양가족 입력 후 <strong>⚡ 자동계산 적용</strong> 버튼 클릭 → 4대보험·소득세 자동 입력</li>
+                <li><strong>연장근무 시급</strong>: 통상시급 (월급 ÷ 209시간) 및 가산율</li>
+                <li><strong>연차</strong>: 미사용 연차 일수 (정산 시 연차수당 자동 계산)</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div style="display:grid; grid-template-columns:60px 1fr; gap:14px; align-items:start;">
+            <div style="background:var(--accent); color:#fff; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Noto Serif KR',serif; font-size:18px;">3</div>
+            <div>
+              <h4 style="font-family:'Noto Serif KR',serif; font-size:15px; margin-bottom:6px; color:var(--ink);">매월 인센티브 입력</h4>
+              <p style="color:var(--ink-soft); font-size:13px; line-height:1.7; margin-bottom:8px;">
+                <strong>[03 가정간호 인센티브]</strong> 탭 → <strong>＋ 월별 기록 추가</strong> → 직원과 년월 선택 후 방문 건수 입력
+              </p>
+              <ul style="font-size:12.5px; color:var(--ink-soft); line-height:1.9; padding-left:20px;">
+                <li>임계값 설정 시 추가인센이 자동 계산됨 (예: 임계값 120 + 방문 150건 → 30건 자동 입력)</li>
+                <li>각 항목 단가는 직원 기본값에서 자동 채워짐 (월별로 변경 가능)</li>
+                <li>입력 도중 합계가 미리보기 패널에 실시간 표시</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div style="display:grid; grid-template-columns:60px 1fr; gap:14px; align-items:start;">
+            <div style="background:var(--accent); color:#fff; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Noto Serif KR',serif; font-size:18px;">4</div>
+            <div>
+              <h4 style="font-family:'Noto Serif KR',serif; font-size:15px; margin-bottom:6px; color:var(--ink);">연장·휴일근무 입력 (필요시)</h4>
+              <p style="color:var(--ink-soft); font-size:13px; line-height:1.7;">
+                <strong>[04 연장·휴일근무]</strong> 탭에서 일자별 근무를 입력합니다. 시작/종료 시각 입력 시 시간이 자동 계산되며, 유형(연장/야간/휴일/야간연장/야간휴일)에 따라 가산율이 자동 적용됩니다.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 5 -->
+          <div style="display:grid; grid-template-columns:60px 1fr; gap:14px; align-items:start;">
+            <div style="background:var(--accent); color:#fff; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Noto Serif KR',serif; font-size:18px;">5</div>
+            <div>
+              <h4 style="font-family:'Noto Serif KR',serif; font-size:15px; margin-bottom:6px; color:var(--ink);">정산서 출력 / PDF 저장</h4>
+              <p style="color:var(--ink-soft); font-size:13px; line-height:1.7; margin-bottom:8px;">
+                <strong>[05 월별 정산]</strong> 탭에서 정산할 월을 선택 → 직원별 급여명세서가 자동 생성됩니다.
+              </p>
+              <ul style="font-size:12.5px; color:var(--ink-soft); line-height:1.9; padding-left:20px;">
+                <li><strong>🖨 급여명세서 인쇄/PDF</strong> 버튼 → 인쇄 대화상자에서 <strong>"PDF로 저장"</strong> 선택</li>
+                <li>전체 직원 선택 시 직원별로 1장씩 자동 페이지 분리됨</li>
+                <li>결재칸 직책명(센터장/총무/원장)은 클릭하면 수정 가능</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3 class="serif">💡 핵심 기능 안내</h3></div>
+      <div class="card-body">
+        <details class="disclosure" open>
+          <summary>📊 소득세는 매월 자동 재계산됩니다</summary>
+          <div class="disclosure-body" style="font-size:13px; color:var(--ink-soft); line-height:1.8;">
+            <p style="margin-bottom:8px;">
+              <strong style="color:var(--ink);">[중요]</strong> 인센티브와 연장근무 수당도 근로소득에 포함되므로, 매월 변동되는 총 지급액을 기준으로 소득세가 다시 계산됩니다.
+            </p>
+            <ul style="padding-left:20px;">
+              <li><strong>4대보험</strong> (국민연금/건강보험/장기요양/고용보험): 직원 단가에 저장된 값 그대로 사용 (실무상 보수월액은 연 1회 신고 후 1년간 고정)</li>
+              <li><strong>소득세 / 지방소득세</strong>: <span style="color:var(--accent); font-weight:600;">매월 정산 시점의 총 지급액 기준으로 자동 재계산</span></li>
+              <li><strong>수동 입력 원할 경우</strong>: 직원 단가 모달의 소득세 항목에서 <em>"직접 입력값 사용"</em> 체크박스 활성화</li>
+            </ul>
+            <div class="small-note" style="margin-top:8px;">
+              ⚠️ 자체 계산값은 국세청 간이세액표와 5~15% 차이가 날 수 있습니다. 정확한 값을 원하시면
+              <a href="https://hometax.go.kr" target="_blank" style="color:var(--accent); font-weight:600;">국세청 손택스</a>에서 조회 후 직접 입력하세요.
+            </div>
+          </div>
+        </details>
+
+        <details class="disclosure">
+          <summary>💾 데이터 저장 방식</summary>
+          <div class="disclosure-body" style="font-size:13px; color:var(--ink-soft); line-height:1.8;">
+            <p>이 프로그램은 다음 방식으로 데이터를 저장합니다:</p>
+            <ul style="padding-left:20px; margin-top:6px;">
+              <li><strong>자동저장 활성화 시</strong> (권장): 입력하면 0.6초 후 지정된 JSON 파일에 자동 저장. 페이지 새로고침이나 재시작 후에도 데이터 유지.</li>
+              <li><strong>수동 백업</strong>: 우상단 <strong>📥 백업 다운로드</strong>로 JSON 파일 다운로드 (월말 권장)</li>
+              <li><strong>다른 PC로 이동</strong>: JSON 파일을 USB 등으로 옮긴 후, 새 PC에서 <strong>📤 백업 복원</strong>으로 불러오기</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="disclosure">
+          <summary>👥 결재칸 직책 변경하기</summary>
+          <div class="disclosure-body" style="font-size:13px; color:var(--ink-soft); line-height:1.8;">
+            급여명세서 하단의 <strong>센터장 / 총무 / 원장</strong> 글자를 클릭하면 직접 수정할 수 있습니다. 한 번 변경하면 모든 직원의 명세서에 동시 반영됩니다 (자동 저장).
+          </div>
+        </details>
+
+        <details class="disclosure">
+          <summary>⏱ 추가인센 임계값 활용 팁</summary>
+          <div class="disclosure-body" style="font-size:13px; color:var(--ink-soft); line-height:1.8;">
+            <p>월 방문 건수가 일정량을 넘으면 추가인센이 붙는 정책을 운영하시는 경우:</p>
+            <ol style="padding-left:20px; margin-top:6px;">
+              <li>직원·수당단가 모달의 <strong>"추가인센 적용 시작 건수"</strong>에 임계값 입력 (예: 120)</li>
+              <li>가정간호 인센티브 입력 시, 총 방문이 임계값을 넘으면 자동으로 초과분이 추가인센 명수에 채워짐</li>
+              <li>필요시 명수를 직접 수정할 수도 있음 (수동 입력 우선)</li>
+            </ol>
+          </div>
+        </details>
+
+        <details class="disclosure">
+          <summary>🌴 연차수당 자동 계산</summary>
+          <div class="disclosure-body" style="font-size:13px; color:var(--ink-soft); line-height:1.8;">
+            직원 단가의 <strong>"연차 잔여일수"</strong>에 미사용 연차일수를 입력하면, 정산 시 통상시급 × 8시간 × 연차일수로 연차수당이 자동 계산되어 명세서에 추가됩니다.
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3 class="serif">🆘 문제 해결</h3></div>
+      <div class="card-body">
+        <table class="dt">
+          <thead><tr><th style="width:30%;">증상</th><th>해결 방법</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>자동저장이 안 됨</strong></td>
+              <td>Chrome / Edge 브라우저인지 확인. 시크릿 모드는 매번 재설정 필요. 자동저장 칩이 🔒로 표시되면 클릭하여 권한 재허용.</td>
+            </tr>
+            <tr>
+              <td><strong>인쇄 시 색이 빠짐</strong></td>
+              <td>브라우저 인쇄 대화상자 → <strong>설정 더보기</strong> → <strong>"배경 그래픽" 체크</strong>.</td>
+            </tr>
+            <tr>
+              <td><strong>방문 건수 입력했는데 인센티브가 0원</strong></td>
+              <td>직원·수당단가 → 해당 직원 [수정] → "건당 기본 인센티브" 단가가 입력되어 있는지 확인.</td>
+            </tr>
+            <tr>
+              <td><strong>4대보험이 너무 적게 나옴</strong></td>
+              <td>직원 단가 → 공제 항목 → <strong>⚡ 자동계산 적용</strong> 버튼 클릭. 부양가족수도 입력했는지 확인.</td>
+            </tr>
+            <tr>
+              <td><strong>실수로 데이터를 지웠음</strong></td>
+              <td>최근 백업 JSON 파일을 <strong>📤 백업 복원</strong>으로 불러오세요. 자동저장 모드면 그 파일이 항상 최신본.</td>
+            </tr>
+            <tr>
+              <td><strong>여러 PC에서 사용하고 싶음</strong></td>
+              <td>USB나 클라우드 드라이브(Google Drive 등)에 JSON 파일 보관. 사용할 PC에서 <strong>📂 기존 파일 불러오기</strong>로 자동저장 연결.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3 class="serif">⌨️ 단축키</h3></div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+          <div style="padding:10px 14px; background:var(--bg-paper); border-radius:6px; border:1px solid var(--line);">
+            <kbd>Esc</kbd> &nbsp; 모달 닫기
+          </div>
+          <div style="padding:10px 14px; background:var(--bg-paper); border-radius:6px; border:1px solid var(--line);">
+            <kbd>Ctrl</kbd> + <kbd>P</kbd> &nbsp; 인쇄/PDF (정산 탭에서)
+          </div>
+          <div style="padding:10px 14px; background:var(--bg-paper); border-radius:6px; border:1px solid var(--line);">
+            <kbd>Tab</kbd> &nbsp; 다음 입력 칸으로 이동
+          </div>
+          <div style="padding:10px 14px; background:var(--bg-paper); border-radius:6px; border:1px solid var(--line);">
+            <kbd>Enter</kbd> &nbsp; 결재 직책명 수정 완료
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="small-note" style="margin-top:18px;">
+      🏥 <strong>연세노블병원 근무수당 통합관리 시스템</strong> · 가정간호 인센티브, 연장근무, 4대보험·세금 자동계산, 급여명세서 출력
+    </div>
+  </section>
+</div>
+
+<!-- ============================================================
+     MODAL: EMPLOYEE
+============================================================ -->
+<div class="modal-back" id="modalEmployee">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="serif" id="empModalTitle">직원 추가</h3>
+      <button class="modal-close" onclick="closeModal('modalEmployee')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="empId">
+
+      <div class="sect-h"><h4>기본 정보</h4><div class="line"></div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>이름 <span class="req">*</span></label>
+          <input type="text" id="empName" placeholder="예) 홍길동">
+        </div>
+        <div class="field">
+          <label>직급</label>
+          <input type="text" id="empPosition" placeholder="예) 책임간호사">
+        </div>
+        <div class="field">
+          <label>부서</label>
+          <input type="text" id="empDept" placeholder="예) 가정간호팀" value="가정간호팀">
+        </div>
+        <div class="field">
+          <label>입사일</label>
+          <input type="date" id="empJoinDate">
+        </div>
+        <div class="field">
+          <label>이메일 <span style="font-size:11px;color:var(--ink-mute);">(급여명세서 발송용)</span></label>
+          <input type="email" id="empEmail" placeholder="예) hong@hospital.com">
+        </div>
+        <div class="field">
+          <label>상태</label>
+          <select id="empStatus">
+            <option value="active">재직</option>
+            <option value="leave">휴직</option>
+            <option value="resigned">퇴사</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>기본급 · 연차</h4><div class="line"></div><div class="hint">월 단위 본봉 및 연차수당</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>기본급 (원/월)</label>
+          <input type="number" id="rateBaseSalary" class="num" placeholder="0" step="10000" oninput="autoCalcDeductions()">
+          <span class="help">매월 지급되는 본봉. 정산서에 자동 포함됩니다.</span>
+        </div>
+        <div class="field">
+          <label>연차 일수 (일/월)</label>
+          <input type="number" id="rateAnnualLeave" class="num" placeholder="0" step="0.5" min="0" oninput="autoCalcDeductions()">
+          <span class="help">이번 달 지급할 연차수당 일수 (통상시급 × 8시간 × 일수)</span>
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>방문 건당 단가</h4><div class="line"></div><div class="hint">건당 × 방문 건수</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>건당 기본 인센티브 (원/건)</label>
+          <input type="number" id="rateBase" class="num" placeholder="0" step="100">
+        </div>
+        <div class="field">
+          <label>야간 가산 (원/건)</label>
+          <input type="number" id="rateNight" class="num" placeholder="0" step="100">
+        </div>
+        <div class="field">
+          <label>주말 가산 (원/건)</label>
+          <input type="number" id="rateWeekend" class="num" placeholder="0" step="100">
+        </div>
+        <div class="field">
+          <label>휴일 가산 (원/건)</label>
+          <input type="number" id="rateHoliday" class="num" placeholder="0" step="100">
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>추가 건당 항목</h4><div class="line"></div><div class="hint">건수 × 단가, 매월 단가 변경 가능</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>추가인센 단가 (원/건)</label>
+          <input type="number" id="rateExtra" class="num" placeholder="0" step="100">
+          <span class="help">매월 명수와 단가 모두 변경 가능</span>
+        </div>
+        <div class="field">
+          <label>추가인센 적용 시작 건수</label>
+          <input type="number" id="rateExtraThreshold" class="num" placeholder="0" min="0">
+          <span class="help">예) 120 → 월 121건째부터 자동 추가인센<br>0 또는 비움 = 자동 적용 안함</span>
+        </div>
+        <div class="field">
+          <label>응급콜 단가 (원/건)</label>
+          <input type="number" id="rateEmergency" class="num" placeholder="0" step="100">
+        </div>
+        <div class="field">
+          <label>개인집 단가 (원/건)</label>
+          <input type="number" id="ratePersonal" class="num" placeholder="0" step="100">
+        </div>
+        <div class="field">
+          <label>백신 및 검진 단가 (원/건)</label>
+          <input type="number" id="rateVaccine" class="num" placeholder="0" step="100">
+        </div>
+        <div class="field">
+          <label>엔진오일 단가 (원/건)</label>
+          <input type="number" id="rateOil" class="num" placeholder="0" step="1000">
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>기타 항목 (사용자 설정)</h4><div class="line"></div><div class="hint">항목명 직접 지정</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>기타 항목명</label>
+          <input type="text" id="customLabel" placeholder="예) 교육수당, 학회참가비 등">
+        </div>
+        <div class="field">
+          <label>기타 단가 (원/건)</label>
+          <input type="number" id="customRate" class="num" placeholder="0" step="100">
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>월정액 수당</h4><div class="line"></div><div class="hint">월 단위 정액 지급</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>차량유지비 (원/월)</label>
+          <input type="number" id="rateTransport" class="num" placeholder="0" step="1000">
+        </div>
+        <div class="field">
+          <label>위험수당 (원/월)</label>
+          <input type="number" id="rateRisk" class="num" placeholder="0" step="1000">
+        </div>
+        <div class="field">
+          <label>특수업무수당 (원/월)</label>
+          <input type="number" id="rateSpecial" class="num" placeholder="0" step="1000">
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>공제 항목 (4대보험·세금)</h4><div class="line"></div><div class="hint">연도별 요율 자동계산 또는 직접 입력</div></div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+        <select id="deductYear" style="padding:6px 10px; border:1px solid var(--line); border-radius:4px; font:inherit; font-size:13px; background:#fff;" onchange="autoCalcDeductions()">
+          <option value="2026">2026년 요율</option>
+          <option value="2025">2025년 요율</option>
+          <option value="2024">2024년 요율</option>
+        </select>
+        <label style="font-size:12px; color:var(--ink-soft); display:flex; align-items:center; gap:6px;">
+          부양가족
+          <input type="number" id="deductDependents" min="1" max="11" value="1" style="width:50px; padding:5px 8px; border:1px solid var(--line); border-radius:4px; font:inherit; font-size:13px; background:#fff;" oninput="autoCalcDeductions()">
+          <span style="color:var(--ink-mute);">명 (본인 포함)</span>
+        </label>
+        <label style="font-size:12px; color:var(--ink-soft); display:flex; align-items:center; gap:6px;">
+          7~20세 자녀
+          <input type="number" id="deductChildren" min="0" max="10" value="0" style="width:50px; padding:5px 8px; border:1px solid var(--line); border-radius:4px; font:inherit; font-size:13px; background:#fff;" oninput="autoCalcDeductions()">
+          <span style="color:var(--ink-mute);">명</span>
+        </label>
+        <button type="button" class="btn sm primary" onclick="autoCalcDeductions(true)">⚡ 자동계산 적용</button>
+      </div>
+      <div id="deductAutoInfo" style="font-size:11px; color:var(--accent); background:var(--accent-bg); padding:6px 10px; border-radius:4px; margin-bottom:10px; display:none;"></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>국민연금 (원/월)</label>
+          <input type="number" id="deductPension" class="num" placeholder="0" step="100" oninput="markDeductManual('pension')">
+          <span class="help" id="hintPension">보수월액 × 4.5%</span>
+        </div>
+        <div class="field">
+          <label>건강보험 (원/월)</label>
+          <input type="number" id="deductHealth" class="num" placeholder="0" step="100" oninput="markDeductManual('health'); autoCalcLongCare()">
+          <span class="help" id="hintHealth">보수월액 × 해당연도 요율</span>
+        </div>
+        <div class="field">
+          <label>장기요양보험 (원/월)</label>
+          <input type="number" id="deductLongCare" class="num" placeholder="0" step="100" oninput="markDeductManual('longCare')">
+          <span class="help" id="hintLongCare">건강보험료 × 해당연도 요율</span>
+        </div>
+        <div class="field">
+          <label>고용보험 (원/월)</label>
+          <input type="number" id="deductEmployment" class="num" placeholder="0" step="100" oninput="markDeductManual('employment')">
+          <span class="help" id="hintEmployment">보수월액 × 0.9%</span>
+        </div>
+        <div class="field">
+          <label>소득세 (원/월) <span class="chip" style="font-size:10px; margin-left:4px;">정산시 자동</span></label>
+          <input type="number" id="deductIncomeTax" class="num" placeholder="자동 재계산" step="100" oninput="markDeductManual('incomeTax')">
+          <span class="help" id="hintIncomeTax">월별 정산 시 <strong style="color:var(--accent);">총 지급액 기준</strong>으로 자동 재계산됨</span>
+          <label style="font-size:11px; color:var(--ink-mute); display:flex; align-items:center; gap:6px; margin-top:4px;">
+            <input type="checkbox" id="deductIncomeTaxManual" style="margin:0;" onchange="onIncomeTaxManualToggle()">
+            <span>직접 입력값 사용 (자동 재계산 안함)</span>
+          </label>
+        </div>
+        <div class="field">
+          <label>지방소득세 (원/월)</label>
+          <input type="number" id="deductLocalTax" class="num" placeholder="0" step="100" oninput="markDeductManual('localTax')">
+          <span class="help" id="hintLocalTax">소득세 × 10%</span>
+        </div>
+        <div class="field">
+          <label>기타 공제 (원/월)</label>
+          <input type="number" id="deductOther" class="num" placeholder="0" step="100">
+          <span class="help">동호회비, 학자금 상환 등</span>
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>연장·휴일근무 시급</h4><div class="line"></div><div class="hint">근로기준법 가산율 기준</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>통상 시급 (원/시) <span class="req">*</span></label>
+          <input type="number" id="rateHourly" class="num" placeholder="0" step="100">
+          <span class="help">월급 ÷ 209시간 또는 약정 시급</span>
+        </div>
+        <div class="field">
+          <label>연장근무 가산율</label>
+          <input type="number" id="rateOTMul" class="num" value="1.5" step="0.1">
+          <span class="help">법정 1.5배</span>
+        </div>
+        <div class="field">
+          <label>야간근무 가산율</label>
+          <input type="number" id="rateNightMul" class="num" value="1.5" step="0.1">
+          <span class="help">22:00~06:00, 통상시급의 1.5배 (가산 0.5)</span>
+        </div>
+        <div class="field">
+          <label>야간연장 가산율</label>
+          <input type="number" id="rateNightOTMul" class="num" value="2.0" step="0.1">
+          <span class="help">연장+야간 중복가산</span>
+        </div>
+        <div class="field">
+          <label>휴일근무 가산율</label>
+          <input type="number" id="rateHolMul" class="num" value="1.5" step="0.1">
+        </div>
+        <div class="field">
+          <label>야간휴일 가산율</label>
+          <input type="number" id="rateNightHolMul" class="num" value="2.0" step="0.1">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn primary" onclick="saveEmployee()">저장</button>
+        <button class="btn ghost" onclick="closeModal('modalEmployee')">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: HOME NURSING
+============================================================ -->
+<div class="modal-back" id="modalHomeNursing">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="serif" id="hnModalTitle">가정간호 인센티브 입력</h3>
+      <button class="modal-close" onclick="closeModal('modalHomeNursing')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="hnId">
+
+      <div class="form-grid">
+        <div class="field">
+          <label>년월 <span class="req">*</span></label>
+          <input type="month" id="hnMonth">
+        </div>
+        <div class="field">
+          <label>직원 <span class="req">*</span></label>
+          <select id="hnEmp" onchange="hnPreview()"></select>
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>방문 건수</h4><div class="line"></div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>일반 방문 건수</label>
+          <input type="number" id="hnVisitsRegular" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>야간 방문 건수</label>
+          <input type="number" id="hnVisitsNight" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>주말 방문 건수</label>
+          <input type="number" id="hnVisitsWeekend" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>휴일 방문 건수</label>
+          <input type="number" id="hnVisitsHoliday" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>추가 건당 항목</h4><div class="line"></div><div class="hint">명수(건수) × 단가, 단가는 직원 기본값에서 자동 채워짐</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>추가인센 — 명수</label>
+          <input type="number" id="hnExtraCount" class="num" value="0" min="0" oninput="hnPreview()">
+          <span class="help" id="hnExtraThresholdHint" style="color: var(--accent);"></span>
+        </div>
+        <div class="field">
+          <label>추가인센 — 단가 (원/건)</label>
+          <input type="number" id="hnExtraRate" class="num" value="0" step="100" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>응급콜 — 건수</label>
+          <input type="number" id="hnEmergencyCount" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>응급콜 — 단가 (원/건)</label>
+          <input type="number" id="hnEmergencyRate" class="num" value="0" step="100" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>개인집 — 건수</label>
+          <input type="number" id="hnPersonalCount" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>개인집 — 단가 (원/건)</label>
+          <input type="number" id="hnPersonalRate" class="num" value="0" step="100" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>백신/검진 — 건수</label>
+          <input type="number" id="hnVaccineCount" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>백신/검진 — 단가 (원/건)</label>
+          <input type="number" id="hnVaccineRate" class="num" value="0" step="100" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>엔진오일 — 건수</label>
+          <input type="number" id="hnOilCount" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>엔진오일 — 단가 (원/건)</label>
+          <input type="number" id="hnOilRate" class="num" value="0" step="1000" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label id="hnCustomLabelDisp">기타 — 건수</label>
+          <input type="number" id="hnCustomCount" class="num" value="0" min="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>기타 — 단가 (원/건)</label>
+          <input type="number" id="hnCustomRate" class="num" value="0" step="100" oninput="hnPreview()">
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>월정액 수당</h4><div class="line"></div><div class="hint">기본값은 직원 단가, 직접 수정 가능</div></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>차량유지비 (원)</label>
+          <input type="number" id="hnTransport" class="num" value="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>위험수당 (원)</label>
+          <input type="number" id="hnRisk" class="num" value="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>특수업무수당 (원)</label>
+          <input type="number" id="hnSpecial" class="num" value="0" oninput="hnPreview()">
+        </div>
+        <div class="field">
+          <label>기타 직접입력 (원)</label>
+          <input type="number" id="hnOther" class="num" value="0" oninput="hnPreview()">
+          <span class="help">위 항목에 없는 일회성 가산</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top: 14px;">
+        <label>비고/메모</label>
+        <textarea id="hnMemo" rows="2"></textarea>
+      </div>
+
+      <div class="sect-h"><h4>자동 계산 미리보기</h4><div class="line"></div></div>
+      <div id="hnPreview" class="settle-grid"></div>
+
+      <div class="form-actions">
+        <button class="btn primary" onclick="saveHomeNursing()">저장</button>
+        <button class="btn ghost" onclick="closeModal('modalHomeNursing')">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: OVERTIME
+============================================================ -->
+<div class="modal-back" id="modalOvertime">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="serif" id="otModalTitle">연장·휴일근무 입력</h3>
+      <button class="modal-close" onclick="closeModal('modalOvertime')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="otId">
+
+      <div class="form-grid">
+        <div class="field">
+          <label>일자 <span class="req">*</span></label>
+          <input type="date" id="otDate" onchange="otPreview()">
+        </div>
+        <div class="field">
+          <label>직원 <span class="req">*</span></label>
+          <select id="otEmp" onchange="otPreview()"></select>
+        </div>
+        <div class="field">
+          <label>유형 <span class="req">*</span></label>
+          <select id="otType" onchange="otPreview()">
+            <option value="overtime">연장근무</option>
+            <option value="night">야간근무</option>
+            <option value="nightOvertime">야간연장</option>
+            <option value="holiday">휴일근무</option>
+            <option value="nightHoliday">야간휴일</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>시작 시각</label>
+          <input type="time" id="otStart" oninput="otRecalcHours()">
+        </div>
+        <div class="field">
+          <label>종료 시각</label>
+          <input type="time" id="otEnd" oninput="otRecalcHours()">
+        </div>
+        <div class="field">
+          <label>근무 시간 (시) <span class="req">*</span></label>
+          <input type="number" id="otHours" class="num" step="0.25" value="0" oninput="otPreview()">
+          <span class="help">시작/종료 시각 입력 시 자동 계산. 직접 수정 가능.</span>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top: 14px;">
+        <div class="field">
+          <label>시급 단가 직접 지정 (선택)</label>
+          <input type="number" id="otHourlyOverride" class="num" placeholder="비워두면 직원 시급 사용" oninput="otPreview()">
+        </div>
+        <div class="field">
+          <label>가산율 직접 지정 (선택)</label>
+          <input type="number" id="otMulOverride" class="num" step="0.1" placeholder="비워두면 자동 적용" oninput="otPreview()">
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top: 14px;">
+        <div class="field" style="grid-column: span 2;">
+          <label>사유</label>
+          <input type="text" id="otReason" placeholder="예) 응급환자 대응">
+        </div>
+        <div class="field">
+          <label>승인자</label>
+          <input type="text" id="otApprover" placeholder="예) 간호부장">
+        </div>
+      </div>
+
+      <div class="sect-h"><h4>자동 계산 미리보기</h4><div class="line"></div></div>
+      <div id="otPreview" class="settle-grid"></div>
+
+      <div class="form-actions">
+        <button class="btn primary" onclick="saveOvertime()">저장</button>
+        <button class="btn ghost" onclick="closeModal('modalOvertime')">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   STATE & STORAGE
+============================================================ */
+const STATE_VERSION = 1;
+let state = {
+  version: STATE_VERSION,
+  employees: [],
+  homeNursing: [],
+  overtime: [],
+  settings: {
+    hospitalName: '연세노블병원',
+    approverTitles: ['센터장', '총무', '원장']
+  }
+};
+
+const TYPE_LABELS = {
+  overtime: '연장근무',
+  night: '야간근무',
+  nightOvertime: '야간연장',
+  holiday: '휴일근무',
+  nightHoliday: '야간휴일'
+};
+
+const TYPE_RATE_KEYS = {
+  overtime: 'rateOTMul',
+  night: 'rateNightMul',
+  nightOvertime: 'rateNightOTMul',
+  holiday: 'rateHolMul',
+  nightHoliday: 'rateNightHolMul'
+};
+
+const STATUS_LABELS = { active:'재직', leave:'휴직', resigned:'퇴사' };
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const fmt = n => (n == null || isNaN(n)) ? '0' : Math.round(n).toLocaleString('ko-KR');
+const ymOf = d => d ? d.slice(0, 7) : '';
+const today = () => new Date().toISOString().slice(0, 10);
+const thisMonth = () => new Date().toISOString().slice(0, 7);
+const dayOfWeek = ds => {
+  if (!ds) return '';
+  const d = new Date(ds);
+  return ['일','월','화','수','목','금','토'][d.getDay()];
+};
+
+function toast(msg, kind='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + kind;
+  clearTimeout(t._tm);
+  t._tm = setTimeout(() => t.className = 'toast ' + kind, 2400);
+}
+
+/* ============================================================
+   TAB NAVIGATION
+============================================================ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'dashboard') renderDashboard();
+    if (btn.dataset.tab === 'employees') renderEmployees();
+    if (btn.dataset.tab === 'homeNursing') renderHomeNursing();
+    if (btn.dataset.tab === 'overtime') renderOvertime();
+    if (btn.dataset.tab === 'settlement') renderSettlement();
+  });
+});
+
+/* ============================================================
+   MODAL UTILITIES
+============================================================ */
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-back').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-back.show').forEach(m => m.classList.remove('show'));
+});
+
+/* ============================================================
+   EMPLOYEES
+============================================================ */
+function getEmp(id) { return state.employees.find(e => e.id === id); }
+function empName(id) { const e = getEmp(id); return e ? e.name : '(삭제됨)'; }
+
+function openEmployeeModal(id) {
+  const isEdit = !!id;
+  document.getElementById('empModalTitle').textContent = isEdit ? '직원 수정' : '직원 추가';
+  const e = isEdit ? getEmp(id) : {};
+  document.getElementById('empId').value = id || '';
+  document.getElementById('empName').value = e.name || '';
+  document.getElementById('empPosition').value = e.position || '';
+  document.getElementById('empDept').value = e.dept || '가정간호팀';
+  document.getElementById('empJoinDate').value = e.joinDate || '';
+  document.getElementById('empStatus').value = e.status || 'active';
+  document.getElementById('empEmail').value = e.email || '';
+  const r = e.rates || {};
+  document.getElementById('rateBaseSalary').value = r.baseSalary ?? '';
+  // Reset manual deduct tracking
+  Object.keys(_deductManual).forEach(k => _deductManual[k] = false);
+  const savedYear = r.deductYear || new Date().getFullYear();
+  const yearSel = document.getElementById('deductYear');
+  yearSel.value = savedYear;
+  document.getElementById('deductDependents').value = r.deductDependents ?? 1;
+  document.getElementById('deductChildren').value = r.deductChildren ?? 0;
+  document.getElementById('rateAnnualLeave').value = r.annualLeave ?? '';
+  document.getElementById('rateBase').value = r.base ?? '';
+  document.getElementById('rateNight').value = r.night ?? '';
+  document.getElementById('rateWeekend').value = r.weekend ?? '';
+  document.getElementById('rateHoliday').value = r.holiday ?? '';
+  document.getElementById('rateExtra').value = r.extra ?? '';
+  document.getElementById('rateExtraThreshold').value = r.extraThreshold ?? '';
+  document.getElementById('rateEmergency').value = r.emergency ?? '';
+  document.getElementById('ratePersonal').value = r.personal ?? '';
+  document.getElementById('rateVaccine').value = r.vaccine ?? '';
+  document.getElementById('rateOil').value = r.oil ?? '';
+  document.getElementById('customLabel').value = r.customLabel ?? '';
+  document.getElementById('customRate').value = r.customRate ?? '';
+  document.getElementById('rateTransport').value = r.transport ?? '';
+  document.getElementById('rateRisk').value = r.risk ?? '';
+  document.getElementById('rateSpecial').value = r.special ?? '';
+  document.getElementById('deductPension').value = r.deductPension ?? '';
+  document.getElementById('deductHealth').value = r.deductHealth ?? '';
+  document.getElementById('deductLongCare').value = r.deductLongCare ?? '';
+  document.getElementById('deductEmployment').value = r.deductEmployment ?? '';
+  document.getElementById('deductIncomeTax').value = r.deductIncomeTax ?? '';
+  document.getElementById('deductIncomeTaxManual').checked = !!r.deductIncomeTaxManual;
+  document.getElementById('deductLocalTax').value = r.deductLocalTax ?? '';
+  document.getElementById('deductOther').value = r.deductOther ?? '';
+  document.getElementById('rateHourly').value = r.hourly ?? '';
+  document.getElementById('rateOTMul').value = r.rateOTMul ?? 1.5;
+  document.getElementById('rateNightMul').value = r.rateNightMul ?? 1.5;
+  document.getElementById('rateNightOTMul').value = r.rateNightOTMul ?? 2.0;
+  document.getElementById('rateHolMul').value = r.rateHolMul ?? 1.5;
+  document.getElementById('rateNightHolMul').value = r.rateNightHolMul ?? 2.0;
+  openModal('modalEmployee');
+  // Auto-show calculation hints based on current base salary
+  setTimeout(() => autoCalcDeductions(false), 50);
+}
+
+/* ============================================================
+   4대보험 요율 테이블 (연도별)
+============================================================ */
+const INSURANCE_RATES = {
+  2026: {
+    pension: 0.045,          // 국민연금 근로자 부담 4.5%
+    health: 0.03545,         // 건강보험 근로자 3.545% (2024년과 동일 동결)
+    longCare: 0.1227,        // 장기요양 건강보험료의 12.27% (2026년)
+    employment: 0.009,       // 고용보험 0.9%
+    pensionCap: 5900000,     // 국민연금 기준소득월액 상한 (590만원)
+    label: '2026년 (국민연금상한 590만원, 건강3.545%, 장기12.27%)'
+  },
+  2025: {
+    pension: 0.045,
+    health: 0.03545,
+    longCare: 0.1227,
+    employment: 0.009,
+    pensionCap: 5900000,
+    label: '2025년 (국민연금상한 590만원, 건강3.545%, 장기12.27%)'
+  },
+  2024: {
+    pension: 0.045,
+    health: 0.03545,
+    longCare: 0.1295,        // 2024년 12.95%
+    employment: 0.009,
+    pensionCap: 5530000,     // 2024년 상한 553만원
+    label: '2024년 (국민연금상한 553만원, 건강3.545%, 장기12.95%)'
+  }
+};
+
+// 수동 수정 여부 트래킹
+const _deductManual = { pension: false, health: false, longCare: false, employment: false, incomeTax: false, localTax: false };
+
+function markDeductManual(key) {
+  _deductManual[key] = true;
+}
+
+function onIncomeTaxManualToggle() {
+  const checked = document.getElementById('deductIncomeTaxManual').checked;
+  const input = document.getElementById('deductIncomeTax');
+  const hint = document.getElementById('hintIncomeTax');
+  if (checked) {
+    input.placeholder = '직접 입력 (월정액)';
+    hint.innerHTML = '✏️ <strong>직접 입력 모드</strong> - 월별 정산 시 이 값이 그대로 사용됨';
+    input.focus();
+  } else {
+    input.placeholder = '자동 재계산';
+    hint.innerHTML = '월별 정산 시 <strong style="color:var(--accent);">총 지급액 기준</strong>으로 자동 재계산됨';
+  }
+}
+
+/**
+ * 한국 국세청 근로소득 간이세액표 기준 소득세 계산
+ * 출처: 소득세법 시행령 별표 2 + 국세청 공식 적용방법 (2024.2.29 개정)
+ * 시행: 2024.3.1 ~
+ *
+ * 공식 산식:
+ * 1) 근로소득공제
+ * 2) 인적공제 (본인+부양가족 1인당 150만원)
+ * 3) 특별소득공제+특별세액공제 = 가족수와 총급여 구간별 별도 산식
+ * 4) 산출세액 = 과세표준 × 누진세율
+ * 5) 근로소득세액공제 (한도 적용)
+ * 6) 자녀세액공제: 가족수에 자녀수 가산 후 표 적용
+ *
+ * 참고: 공식 간이세액표와 약간의 차이는 발생할 수 있음 (실무상 5~10% 이내)
+ */
+function calcIncomeTax(monthlyPay, dependents, children7to20) {
+  if (monthlyPay <= 0) return 0;
+  const realFamily = Math.max(1, dependents || 1);
+  const C = Math.max(0, children7to20 || 0);
+  // 자녀세액공제: 공제대상가족수에 자녀수만큼 추가 (간이세액표 방식)
+  const N = realFamily + C;
+
+  const annualPay = monthlyPay * 12;
+
+  // 1. 근로소득공제
+  let earnedDeduction;
+  if (annualPay <= 5000000) earnedDeduction = annualPay * 0.7;
+  else if (annualPay <= 15000000) earnedDeduction = 3500000 + (annualPay - 5000000) * 0.4;
+  else if (annualPay <= 45000000) earnedDeduction = 7500000 + (annualPay - 15000000) * 0.15;
+  else if (annualPay <= 100000000) earnedDeduction = 12000000 + (annualPay - 45000000) * 0.05;
+  else earnedDeduction = 14750000 + (annualPay - 100000000) * 0.02;
+  earnedDeduction = Math.min(earnedDeduction, 20000000);
+  const earnedIncome = annualPay - earnedDeduction;
+
+  // 2. 인적공제 (자녀가산 포함)
+  const personalDeduction = N * 1500000;
+
+  // 3. 특별소득공제+특별세액공제 (간이세액표 공식 산식)
+  // 공제대상자 1명 / 2명 / 3명 이상에 따라 차등
+  let special;
+  const familyForSpecial = Math.min(N, 3); // 1, 2, 3+ 만 구분
+  if (annualPay <= 30000000) {
+    if (familyForSpecial === 1) special = 3100000 + annualPay * 0.04;
+    else if (familyForSpecial === 2) special = 3600000 + annualPay * 0.04;
+    else special = 5000000 + annualPay * 0.07;
+  } else if (annualPay <= 45000000) {
+    const over30 = annualPay - 30000000;
+    if (familyForSpecial === 1) special = 3100000 + annualPay * 0.04 - over30 * 0.05;
+    else if (familyForSpecial === 2) special = 3600000 + annualPay * 0.04 - over30 * 0.05;
+    else {
+      special = 5000000 + annualPay * 0.07 - over30 * 0.05;
+      if (annualPay > 40000000) special += (annualPay - 40000000) * 0.04;
+    }
+  } else if (annualPay <= 70000000) {
+    if (familyForSpecial === 1) special = 3100000 + annualPay * 0.015;
+    else if (familyForSpecial === 2) special = 3600000 + annualPay * 0.02;
+    else special = 5000000 + annualPay * 0.05;
+  } else if (annualPay <= 120000000) {
+    if (familyForSpecial === 1) special = 3100000 + annualPay * 0.005;
+    else if (familyForSpecial === 2) special = 3600000 + annualPay * 0.01;
+    else special = 5000000 + annualPay * 0.03;
+  } else {
+    if (familyForSpecial === 1) special = 3100000 + annualPay * 0.005;
+    else if (familyForSpecial === 2) special = 3600000 + annualPay * 0.01;
+    else special = 5000000 + annualPay * 0.03;
+  }
+
+  // 4. 과세표준
+  const taxBase = Math.max(0, earnedIncome - personalDeduction - special);
+
+  // 5. 산출세액 (2023~ 누진세율)
+  let calcTax;
+  if (taxBase <= 14000000) calcTax = taxBase * 0.06;
+  else if (taxBase <= 50000000) calcTax = 840000 + (taxBase - 14000000) * 0.15;
+  else if (taxBase <= 88000000) calcTax = 6240000 + (taxBase - 50000000) * 0.24;
+  else if (taxBase <= 150000000) calcTax = 15360000 + (taxBase - 88000000) * 0.35;
+  else if (taxBase <= 300000000) calcTax = 37060000 + (taxBase - 150000000) * 0.38;
+  else if (taxBase <= 500000000) calcTax = 94060000 + (taxBase - 300000000) * 0.40;
+  else if (taxBase <= 1000000000) calcTax = 174060000 + (taxBase - 500000000) * 0.42;
+  else calcTax = 384060000 + (taxBase - 1000000000) * 0.45;
+
+  // 6. 근로소득세액공제
+  let earnedTaxCredit;
+  if (calcTax <= 1300000) earnedTaxCredit = calcTax * 0.55;
+  else earnedTaxCredit = 715000 + (calcTax - 1300000) * 0.30;
+  let creditLimit;
+  if (annualPay <= 33000000) creditLimit = 740000;
+  else if (annualPay <= 70000000) creditLimit = Math.max(660000, 740000 - (annualPay - 33000000) * 0.008);
+  else if (annualPay <= 120000000) creditLimit = Math.max(500000, 660000 - (annualPay - 70000000) * 0.5 / 2);
+  else creditLimit = Math.max(200000, 500000 - (annualPay - 120000000) * 0.5 / 100);
+  earnedTaxCredit = Math.min(earnedTaxCredit, creditLimit);
+
+  let annualTax = Math.max(0, calcTax - earnedTaxCredit);
+  let monthlyTax = annualTax / 12;
+
+  return Math.max(0, Math.floor(monthlyTax / 10) * 10);
+}
+
+function autoCalcLongCare() {
+  // 건강보험이 바뀌면 장기요양도 자동 재계산 (단, 수동 수정하지 않은 경우)
+  if (_deductManual.longCare) return;
+  const year = parseInt(document.getElementById('deductYear').value) || new Date().getFullYear();
+  const rates = INSURANCE_RATES[year] || INSURANCE_RATES[2026];
+  const health = +document.getElementById('deductHealth').value || 0;
+  document.getElementById('deductLongCare').value = Math.round(health * rates.longCare);
+}
+
+function autoCalcDeductions(forceApply = false) {
+  const year = parseInt(document.getElementById('deductYear').value) || new Date().getFullYear();
+  const rates = INSURANCE_RATES[year] || INSURANCE_RATES[2026];
+  const baseSalary = +document.getElementById('rateBaseSalary').value || 0;
+  const dependents = parseInt(document.getElementById('deductDependents').value) || 1;
+  const children = parseInt(document.getElementById('deductChildren').value) || 0;
+  if (baseSalary <= 0) {
+    document.getElementById('deductAutoInfo').style.display = 'none';
+    return;
+  }
+
+  // 국민연금 과표는 상한액 적용
+  const pensionBase = Math.min(baseSalary, rates.pensionCap);
+  const calcPension = Math.round(pensionBase * rates.pension / 10) * 10;
+  const calcHealth = Math.round(baseSalary * rates.health / 10) * 10;
+  const calcLongCare = Math.round(calcHealth * rates.longCare / 10) * 10;
+  const calcEmployment = Math.round(baseSalary * rates.employment / 10) * 10;
+  const calcIncomeT = calcIncomeTax(baseSalary, dependents, children);
+  const calcLocalT = Math.round(calcIncomeT * 0.1 / 10) * 10;
+
+  // 힌트 업데이트
+  document.getElementById('hintPension').textContent =
+    `${pensionBase.toLocaleString()}원 × 4.5% = ${calcPension.toLocaleString()}원`;
+  document.getElementById('hintHealth').textContent =
+    `${baseSalary.toLocaleString()}원 × ${(rates.health*100).toFixed(3)}% = ${calcHealth.toLocaleString()}원`;
+  document.getElementById('hintLongCare').textContent =
+    `건보료 × ${(rates.longCare*100).toFixed(2)}% = ${calcLongCare.toLocaleString()}원`;
+  document.getElementById('hintEmployment').textContent =
+    `${baseSalary.toLocaleString()}원 × 0.9% = ${calcEmployment.toLocaleString()}원`;
+  document.getElementById('hintIncomeTax').textContent =
+    `간이세액표 (부양 ${dependents}명, 자녀 ${children}명) = ${calcIncomeT.toLocaleString()}원`;
+  document.getElementById('hintLocalTax').textContent =
+    `소득세 ${calcIncomeT.toLocaleString()}원 × 10% = ${calcLocalT.toLocaleString()}원`;
+
+  const infoEl = document.getElementById('deductAutoInfo');
+  infoEl.textContent = `📊 ${rates.label} 기준 + 간이세액표(부양${dependents}명/자녀${children}명) 자동산출. 필요시 수동 수정.`;
+  infoEl.style.display = 'block';
+
+  // 자동 적용 버튼을 눌렀거나 수동 수정하지 않은 항목만 채움
+  const set = (id, val, manualKey) => {
+    if (forceApply || !_deductManual[manualKey]) {
+      document.getElementById(id).value = val;
+      if (forceApply) _deductManual[manualKey] = false;
+    }
+  };
+  set('deductPension', calcPension, 'pension');
+  set('deductHealth', calcHealth, 'health');
+  set('deductLongCare', calcLongCare, 'longCare');
+  set('deductEmployment', calcEmployment, 'employment');
+  set('deductIncomeTax', calcIncomeT, 'incomeTax');
+  set('deductLocalTax', calcLocalT, 'localTax');
+}
+
+/* ============================================================
+   연차수당 계산
+============================================================ */
+function calcAnnualLeave(emp) {
+  const r = emp.rates || {};
+  const days = +r.annualLeave || 0;
+  if (days <= 0) return 0;
+  const hourly = +r.hourly || 0;
+  // 연차수당 = 통상시급 × 8시간 × 일수
+  return Math.round(hourly * 8 * days);
+}
+
+
+async function saveEmployee() {
+  const name = document.getElementById('empName').value.trim();
+  if (!name) { toast('이름을 입력하세요', 'warn'); return; }
+  const id = document.getElementById('empId').value || uid();
+  const num = id => +document.getElementById(id).value || 0;
+  const data = {
+    id, name,
+    position: document.getElementById('empPosition').value.trim(),
+    dept: document.getElementById('empDept').value.trim(),
+    joinDate: document.getElementById('empJoinDate').value,
+    status: document.getElementById('empStatus').value,
+    email: document.getElementById('empEmail').value.trim(),
+    rates: {
+      baseSalary: num('rateBaseSalary'),
+      annualLeave: parseFloat(document.getElementById('rateAnnualLeave').value) || 0,
+      deductYear: parseInt(document.getElementById('deductYear').value) || new Date().getFullYear(),
+      deductDependents: parseInt(document.getElementById('deductDependents').value) || 1,
+      deductChildren: parseInt(document.getElementById('deductChildren').value) || 0,
+      base: num('rateBase'), night: num('rateNight'), weekend: num('rateWeekend'), holiday: num('rateHoliday'),
+      extra: num('rateExtra'), extraThreshold: num('rateExtraThreshold'),
+      emergency: num('rateEmergency'), personal: num('ratePersonal'), vaccine: num('rateVaccine'), oil: num('rateOil'),
+      customLabel: document.getElementById('customLabel').value.trim(), customRate: num('customRate'),
+      transport: num('rateTransport'), risk: num('rateRisk'), special: num('rateSpecial'),
+      deductPension: num('deductPension'), deductHealth: num('deductHealth'), deductLongCare: num('deductLongCare'),
+      deductEmployment: num('deductEmployment'), deductIncomeTax: num('deductIncomeTax'),
+      deductIncomeTaxManual: document.getElementById('deductIncomeTaxManual').checked,
+      deductLocalTax: num('deductLocalTax'), deductOther: num('deductOther'),
+      hourly: num('rateHourly'),
+      rateOTMul: parseFloat(document.getElementById('rateOTMul').value) || 1.5,
+      rateNightMul: parseFloat(document.getElementById('rateNightMul').value) || 1.5,
+      rateNightOTMul: parseFloat(document.getElementById('rateNightOTMul').value) || 2.0,
+      rateHolMul: parseFloat(document.getElementById('rateHolMul').value) || 1.5,
+      rateNightHolMul: parseFloat(document.getElementById('rateNightHolMul').value) || 2.0
+    }
+  };
+  try {
+    setSyncStatus('저장 중...', true);
+    await fbDb.collection('employees').doc(id).set(data);
+    closeModal('modalEmployee');
+    toast('저장되었습니다', 'success');
+  } catch (e) { toast('저장 실패: ' + e.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+async function deleteEmployee(id) {
+  const e = getEmp(id);
+  if (!e) return;
+  const used = state.homeNursing.some(r => r.empId === id) || state.overtime.some(r => r.empId === id);
+  if (used) {
+    if (!confirm(`${e.name}의 근무/인센티브 기록이 있습니다. 직원과 함께 모두 삭제할까요?`)) return;
+  } else {
+    if (!confirm(`${e.name} 직원을 삭제할까요?`)) return;
+  }
+  try {
+    setSyncStatus('삭제 중...', true);
+    if (used) {
+      const batch = fbDb.batch();
+      state.homeNursing.filter(r => r.empId === id).forEach(r => batch.delete(fbDb.collection('homeNursing').doc(r.id)));
+      state.overtime.filter(r => r.empId === id).forEach(r => batch.delete(fbDb.collection('overtime').doc(r.id)));
+      batch.delete(fbDb.collection('employees').doc(id));
+      await batch.commit();
+    } else {
+      await fbDb.collection('employees').doc(id).delete();
+    }
+    toast('삭제되었습니다');
+  } catch (err) { toast('삭제 실패: ' + err.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+function renderEmployees() {
+  const tbody = document.querySelector('#empTable tbody');
+  if (!state.employees.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty"><div class="ico">👥</div>아직 등록된 직원이 없습니다. <strong>＋ 직원 추가</strong> 버튼을 눌러 시작하세요.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.employees.map(e => {
+    const r = e.rates || {};
+    const statusChip = e.status === 'active' ? '<span class="chip">재직</span>'
+      : e.status === 'leave' ? '<span class="chip warm">휴직</span>'
+      : '<span class="chip gray">퇴사</span>';
+    return `<tr>
+      <td><strong>${escapeHtml(e.name)}</strong></td>
+      <td>${escapeHtml(e.position || '-')}</td>
+      <td>${escapeHtml(e.dept || '-')}</td>
+      <td class="mono">${e.joinDate || '-'}</td>
+      <td class="num">${fmt(r.baseSalary)}</td>
+      <td class="num">${fmt(r.base)}</td>
+      <td class="num">${fmt(r.hourly)}</td>
+      <td class="center">${statusChip}</td>
+      <td><div class="row-actions">
+        <button onclick="openEmployeeModal('${e.id}')">수정</button>
+        <button class="del" onclick="deleteEmployee('${e.id}')">삭제</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function refreshEmployeeSelectors() {
+  const opts = '<option value="">— 직원 선택 —</option>' +
+    state.employees.filter(e => e.status === 'active')
+      .map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.position||'')})</option>`).join('');
+  ['hnEmp','otEmp'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = opts;
+    sel.value = cur;
+  });
+  const filterOpts = '<option value="">전체</option>' +
+    state.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+  ['hnFilterEmp','otFilterEmp','settleEmp'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    if (id === 'settleEmp') sel.innerHTML = '<option value="">전체 직원</option>' + state.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+    else sel.innerHTML = filterOpts;
+    sel.value = cur;
+  });
+}
+
+/* ============================================================
+   HOME NURSING INCENTIVE
+============================================================ */
+function calcHN(emp, rec) {
+  if (!emp) return null;
+  const r = emp.rates || {};
+  const visits = {
+    regular: +rec.visitsRegular || 0,
+    night: +rec.visitsNight || 0,
+    weekend: +rec.visitsWeekend || 0,
+    holiday: +rec.visitsHoliday || 0
+  };
+  const totalVisits = visits.regular + visits.night + visits.weekend + visits.holiday;
+  const baseAmount = totalVisits * (r.base || 0);
+  const nightBonus = visits.night * (r.night || 0);
+  const weekendBonus = visits.weekend * (r.weekend || 0);
+  const holidayBonus = visits.holiday * (r.holiday || 0);
+  const bonusTotal = nightBonus + weekendBonus + holidayBonus;
+
+  // Additional per-count items (count × rate from record itself)
+  const extraCount = +rec.extraCount || 0;
+  const extraRate = +rec.extraRate || 0;
+  const extraAmount = extraCount * extraRate;
+  const emergencyCount = +rec.emergencyCount || 0;
+  const emergencyRate = +rec.emergencyRate || 0;
+  const emergencyAmount = emergencyCount * emergencyRate;
+  const personalCount = +rec.personalCount || 0;
+  const personalRate = +rec.personalRate || 0;
+  const personalAmount = personalCount * personalRate;
+  const vaccineCount = +rec.vaccineCount || 0;
+  const vaccineRate = +rec.vaccineRate || 0;
+  const vaccineAmount = vaccineCount * vaccineRate;
+  const oilCount = +rec.oilCount || 0;
+  const oilRate = +rec.oilRate || 0;
+  const oilAmount = oilCount * oilRate;
+  const customCount = +rec.customCount || 0;
+  const customRate = +rec.customRate || 0;
+  const customAmount = customCount * customRate;
+  const additionalTotal = extraAmount + emergencyAmount + personalAmount + vaccineAmount + oilAmount + customAmount;
+
+  // Monthly fixed
+  const transport = +rec.transport || 0;
+  const risk = +rec.risk || 0;
+  const special = +rec.special || 0;
+  const other = +rec.other || 0;
+  const monthlyTotal = transport + risk + special + other;
+
+  const total = baseAmount + bonusTotal + additionalTotal + monthlyTotal;
+  return {
+    totalVisits, baseAmount,
+    nightBonus, weekendBonus, holidayBonus, bonusTotal,
+    extraCount, extraRate, extraAmount,
+    emergencyCount, emergencyRate, emergencyAmount,
+    personalCount, personalRate, personalAmount,
+    vaccineCount, vaccineRate, vaccineAmount,
+    oilCount, oilRate, oilAmount,
+    customCount, customRate, customAmount,
+    additionalTotal,
+    transport, risk, special, other, monthlyTotal,
+    // Backward compat
+    otherTotal: monthlyTotal,
+    total
+  };
+}
+
+function openHomeNursingModal(id) {
+  const isEdit = !!id;
+  document.getElementById('hnModalTitle').textContent = isEdit ? '인센티브 기록 수정' : '가정간호 인센티브 입력';
+  refreshEmployeeSelectors();
+  const r = isEdit ? state.homeNursing.find(x => x.id === id) : {};
+  document.getElementById('hnId').value = id || '';
+  document.getElementById('hnMonth').value = r.month || thisMonth();
+  document.getElementById('hnEmp').value = r.empId || '';
+  document.getElementById('hnVisitsRegular').value = r.visitsRegular || 0;
+  document.getElementById('hnVisitsNight').value = r.visitsNight || 0;
+  document.getElementById('hnVisitsWeekend').value = r.visitsWeekend || 0;
+  document.getElementById('hnVisitsHoliday').value = r.visitsHoliday || 0;
+
+  // Reset all touched markers
+  ['hnTransport','hnRisk','hnSpecial','hnOther',
+   'hnExtraCount','hnExtraRate','hnEmergencyCount','hnEmergencyRate',
+   'hnPersonalCount','hnPersonalRate','hnVaccineCount','hnVaccineRate',
+   'hnOilCount','hnOilRate','hnCustomCount','hnCustomRate']
+    .forEach(i => { const el = document.getElementById(i); if (el) el.dataset.touched = '0'; });
+
+  if (isEdit) {
+    document.getElementById('hnTransport').value = r.transport || 0;
+    document.getElementById('hnRisk').value = r.risk || 0;
+    document.getElementById('hnSpecial').value = r.special || 0;
+    document.getElementById('hnOther').value = r.other || 0;
+    document.getElementById('hnMemo').value = r.memo || '';
+    document.getElementById('hnExtraCount').value = r.extraCount || 0;
+    document.getElementById('hnExtraRate').value = r.extraRate || 0;
+    document.getElementById('hnEmergencyCount').value = r.emergencyCount || 0;
+    document.getElementById('hnEmergencyRate').value = r.emergencyRate || 0;
+    document.getElementById('hnPersonalCount').value = r.personalCount || 0;
+    document.getElementById('hnPersonalRate').value = r.personalRate || 0;
+    document.getElementById('hnVaccineCount').value = r.vaccineCount || 0;
+    document.getElementById('hnVaccineRate').value = r.vaccineRate || 0;
+    document.getElementById('hnOilCount').value = r.oilCount || 0;
+    document.getElementById('hnOilRate').value = r.oilRate || 0;
+    document.getElementById('hnCustomCount').value = r.customCount || 0;
+    document.getElementById('hnCustomRate').value = r.customRate || 0;
+    // Mark rates as touched so they don't auto-overwrite on edit
+    ['hnExtraCount','hnExtraRate','hnEmergencyRate','hnPersonalRate','hnVaccineRate','hnOilRate','hnCustomRate',
+     'hnTransport','hnRisk','hnSpecial']
+      .forEach(i => document.getElementById(i).dataset.touched = '1');
+  } else {
+    ['hnTransport','hnRisk','hnSpecial','hnOther',
+     'hnExtraCount','hnExtraRate','hnEmergencyCount','hnEmergencyRate',
+     'hnPersonalCount','hnPersonalRate','hnVaccineCount','hnVaccineRate',
+     'hnOilCount','hnOilRate','hnCustomCount','hnCustomRate']
+      .forEach(i => document.getElementById(i).value = 0);
+    document.getElementById('hnMemo').value = '';
+  }
+  // Update custom label display
+  updateCustomLabel();
+  // Auto-fill rates from employee
+  setTimeout(() => fillHnRatesFromEmp(), 0);
+  hnPreview();
+  openModal('modalHomeNursing');
+}
+
+function updateCustomLabel() {
+  const emp = getEmp(document.getElementById('hnEmp').value);
+  const label = (emp && emp.rates && emp.rates.customLabel) ? emp.rates.customLabel : '기타';
+  document.getElementById('hnCustomLabelDisp').textContent = `${label} — 건수`;
+}
+
+function fillHnRatesFromEmp() {
+  const emp = getEmp(document.getElementById('hnEmp').value);
+  updateCustomLabel();
+  if (!emp) return;
+  const r = emp.rates || {};
+  // Only auto-fill if user hasn't touched the field
+  const setIfClean = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && el.dataset.touched !== '1') el.value = val || 0;
+  };
+  setIfClean('hnTransport', r.transport);
+  setIfClean('hnRisk', r.risk);
+  setIfClean('hnSpecial', r.special);
+  setIfClean('hnExtraRate', r.extra);
+  setIfClean('hnEmergencyRate', r.emergency);
+  setIfClean('hnPersonalRate', r.personal);
+  setIfClean('hnVaccineRate', r.vaccine);
+  setIfClean('hnOilRate', r.oil);
+  setIfClean('hnCustomRate', r.customRate);
+  hnPreview();
+}
+
+function hnPreview() {
+  const emp = getEmp(document.getElementById('hnEmp').value);
+  const box = document.getElementById('hnPreview');
+  updateCustomLabel();
+  if (!emp) {
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1; padding:14px;">직원을 선택하면 자동 계산됩니다.</div>';
+    document.getElementById('hnExtraThresholdHint').textContent = '';
+    return;
+  }
+  // Auto-fill rates from emp if untouched
+  fillHnRateFieldsIfUntouched(emp);
+  // Auto-calculate extra count from threshold
+  autoCalcExtraCount(emp);
+
+  const rec = collectHnFormData();
+  const c = calcHN(emp, rec);
+  const r = emp.rates || {};
+  const customLbl = (r.customLabel || '기타').replace(/[<>&"']/g, '');
+
+  const items = [
+    ['총 방문건수', `${c.totalVisits} 건`],
+    [`기본 인센티브 (${fmt(r.base)} × ${c.totalVisits})`, `${fmt(c.baseAmount)} 원`],
+    [`야간 가산 (${fmt(r.night)} × ${rec.visitsNight})`, `${fmt(c.nightBonus)} 원`],
+    [`주말 가산 (${fmt(r.weekend)} × ${rec.visitsWeekend})`, `${fmt(c.weekendBonus)} 원`],
+    [`휴일 가산 (${fmt(r.holiday)} × ${rec.visitsHoliday})`, `${fmt(c.holidayBonus)} 원`],
+    [`추가인센 (${fmt(c.extraRate)} × ${c.extraCount})`, `${fmt(c.extraAmount)} 원`],
+    [`응급콜 (${fmt(c.emergencyRate)} × ${c.emergencyCount})`, `${fmt(c.emergencyAmount)} 원`],
+    [`개인집 (${fmt(c.personalRate)} × ${c.personalCount})`, `${fmt(c.personalAmount)} 원`],
+    [`백신/검진 (${fmt(c.vaccineRate)} × ${c.vaccineCount})`, `${fmt(c.vaccineAmount)} 원`],
+    [`엔진오일 (${fmt(c.oilRate)} × ${c.oilCount})`, `${fmt(c.oilAmount)} 원`],
+    [`${customLbl} (${fmt(c.customRate)} × ${c.customCount})`, `${fmt(c.customAmount)} 원`],
+    ['차량유지비 + 위험수당 + 특수업무 + 기타', `${fmt(c.monthlyTotal)} 원`]
+  ];
+  let html = items.map(([lbl, val]) =>
+    `<div class="item"><span class="lbl">${lbl}</span><span class="val">${val}</span></div>`
+  ).join('');
+  html += `<div class="item total"><span class="lbl">합계</span><span class="val">${fmt(c.total)} 원</span></div>`;
+  box.innerHTML = html;
+}
+
+function autoCalcExtraCount(emp) {
+  const threshold = (emp.rates && +emp.rates.extraThreshold) || 0;
+  const extraCountEl = document.getElementById('hnExtraCount');
+  const hint = document.getElementById('hnExtraThresholdHint');
+  if (!extraCountEl || !hint) return;
+
+  const totalVisits = (+document.getElementById('hnVisitsRegular').value || 0) +
+                     (+document.getElementById('hnVisitsNight').value || 0) +
+                     (+document.getElementById('hnVisitsWeekend').value || 0) +
+                     (+document.getElementById('hnVisitsHoliday').value || 0);
+
+  if (threshold > 0) {
+    const calculated = Math.max(0, totalVisits - threshold);
+    if (extraCountEl.dataset.touched !== '1') {
+      extraCountEl.value = calculated;
+      hint.innerHTML = `🟢 자동: <strong>${threshold}건 초과분 = ${calculated}건</strong> (총 방문 ${totalVisits}건 기준)`;
+    } else {
+      hint.innerHTML = `✏️ 수동 입력됨 (자동값: ${threshold}건 초과 → ${calculated}건)`;
+    }
+  } else {
+    hint.textContent = '';
+  }
+}
+
+function fillHnRateFieldsIfUntouched(emp) {
+  const r = emp.rates || {};
+  const setIfClean = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && el.dataset.touched !== '1') el.value = val || 0;
+  };
+  setIfClean('hnTransport', r.transport);
+  setIfClean('hnRisk', r.risk);
+  setIfClean('hnSpecial', r.special);
+  setIfClean('hnExtraRate', r.extra);
+  setIfClean('hnEmergencyRate', r.emergency);
+  setIfClean('hnPersonalRate', r.personal);
+  setIfClean('hnVaccineRate', r.vaccine);
+  setIfClean('hnOilRate', r.oil);
+  setIfClean('hnCustomRate', r.customRate);
+}
+
+function collectHnFormData() {
+  return {
+    visitsRegular: +document.getElementById('hnVisitsRegular').value || 0,
+    visitsNight: +document.getElementById('hnVisitsNight').value || 0,
+    visitsWeekend: +document.getElementById('hnVisitsWeekend').value || 0,
+    visitsHoliday: +document.getElementById('hnVisitsHoliday').value || 0,
+    extraCount: +document.getElementById('hnExtraCount').value || 0,
+    extraRate: +document.getElementById('hnExtraRate').value || 0,
+    emergencyCount: +document.getElementById('hnEmergencyCount').value || 0,
+    emergencyRate: +document.getElementById('hnEmergencyRate').value || 0,
+    personalCount: +document.getElementById('hnPersonalCount').value || 0,
+    personalRate: +document.getElementById('hnPersonalRate').value || 0,
+    vaccineCount: +document.getElementById('hnVaccineCount').value || 0,
+    vaccineRate: +document.getElementById('hnVaccineRate').value || 0,
+    oilCount: +document.getElementById('hnOilCount').value || 0,
+    oilRate: +document.getElementById('hnOilRate').value || 0,
+    customCount: +document.getElementById('hnCustomCount').value || 0,
+    customRate: +document.getElementById('hnCustomRate').value || 0,
+    transport: +document.getElementById('hnTransport').value || 0,
+    risk: +document.getElementById('hnRisk').value || 0,
+    special: +document.getElementById('hnSpecial').value || 0,
+    other: +document.getElementById('hnOther').value || 0
+  };
+}
+
+async function saveHomeNursing() {
+  const month = document.getElementById('hnMonth').value;
+  const empId = document.getElementById('hnEmp').value;
+  if (!month) { toast('년월을 선택하세요', 'warn'); return; }
+  if (!empId) { toast('직원을 선택하세요', 'warn'); return; }
+  const id = document.getElementById('hnId').value || uid();
+  const formData = collectHnFormData();
+  const rec = { id, month, empId, ...formData, memo: document.getElementById('hnMemo').value.trim() };
+  try {
+    setSyncStatus('저장 중...', true);
+    await fbDb.collection('homeNursing').doc(id).set(rec);
+    closeModal('modalHomeNursing');
+    toast('저장되었습니다', 'success');
+  } catch (e) { toast('저장 실패: ' + e.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+async function deleteHomeNursing(id) {
+  if (!confirm('이 인센티브 기록을 삭제할까요?')) return;
+  try {
+    setSyncStatus('삭제 중...', true);
+    await fbDb.collection('homeNursing').doc(id).delete();
+    toast('삭제되었습니다');
+  } catch (e) { toast('삭제 실패: ' + e.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+function renderHomeNursing() {
+  const tbody = document.querySelector('#hnTable tbody');
+  const monthFilter = document.getElementById('hnFilterMonth').value;
+  const empFilter = document.getElementById('hnFilterEmp').value;
+  let rows = state.homeNursing.slice().sort((a,b) => (b.month||'').localeCompare(a.month||'') || empName(a.empId).localeCompare(empName(b.empId)));
+  if (monthFilter) rows = rows.filter(r => r.month === monthFilter);
+  if (empFilter) rows = rows.filter(r => r.empId === empFilter);
+
+  let totVisits = 0, totBase = 0, totBonus = 0, totAdd = 0, totMonthly = 0, totSum = 0;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="13" class="empty"><div class="ico">📋</div>인센티브 기록이 없습니다.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r => {
+      const emp = getEmp(r.empId);
+      const c = calcHN(emp, r);
+      if (!c) return '';
+      totVisits += c.totalVisits;
+      totBase += c.baseAmount;
+      totBonus += c.bonusTotal;
+      totAdd += c.additionalTotal;
+      totMonthly += c.monthlyTotal;
+      totSum += c.total;
+      return `<tr>
+        <td class="mono">${r.month}</td>
+        <td><strong>${escapeHtml(empName(r.empId))}</strong></td>
+        <td class="num">${c.totalVisits}</td>
+        <td class="num">${r.visitsRegular || 0}</td>
+        <td class="num">${r.visitsNight || 0}</td>
+        <td class="num">${r.visitsWeekend || 0}</td>
+        <td class="num">${r.visitsHoliday || 0}</td>
+        <td class="num">${fmt(c.baseAmount)}</td>
+        <td class="num">${fmt(c.bonusTotal)}</td>
+        <td class="num">${fmt(c.additionalTotal)}</td>
+        <td class="num">${fmt(c.monthlyTotal)}</td>
+        <td class="num"><strong>${fmt(c.total)}</strong></td>
+        <td><div class="row-actions">
+          <button onclick="openHomeNursingModal('${r.id}')">수정</button>
+          <button class="del" onclick="deleteHomeNursing('${r.id}')">삭제</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('hnSumVisits').textContent = totVisits;
+  document.getElementById('hnSumBase').textContent = fmt(totBase);
+  document.getElementById('hnSumBonus').textContent = fmt(totBonus);
+  document.getElementById('hnSumAdd').textContent = fmt(totAdd);
+  document.getElementById('hnSumOther').textContent = fmt(totMonthly);
+  document.getElementById('hnSumTotal').textContent = fmt(totSum);
+}
+
+function resetOvertimeFilter() {
+  document.getElementById('otFilterMonth').value = '';
+  document.getElementById('otFilterEmp').value = '';
+  document.getElementById('otFilterType').value = '';
+  renderOvertime();
+}
+
+/* ============================================================
+   OVERTIME
+============================================================ */
+function calcOT(emp, rec) {
+  if (!emp) return null;
+  const r = emp.rates || {};
+  const hourly = (rec.hourlyOverride && +rec.hourlyOverride > 0) ? +rec.hourlyOverride : (r.hourly || 0);
+  const mulKey = TYPE_RATE_KEYS[rec.type] || 'rateOTMul';
+  const mul = (rec.mulOverride && +rec.mulOverride > 0) ? +rec.mulOverride : (r[mulKey] || 1.5);
+  const hours = +rec.hours || 0;
+  const amount = hourly * hours * mul;
+  return { hourly, mul, hours, amount };
+}
+
+function timeDiffHours(s, e) {
+  if (!s || !e) return 0;
+  const [sh, sm] = s.split(':').map(Number);
+  const [eh, em] = e.split(':').map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins < 0) mins += 24 * 60; // overnight
+  return Math.round(mins / 15) * 0.25; // 15-min increments
+}
+
+function otRecalcHours() {
+  const s = document.getElementById('otStart').value;
+  const e = document.getElementById('otEnd').value;
+  if (s && e) {
+    const h = timeDiffHours(s, e);
+    document.getElementById('otHours').value = h;
+  }
+  otPreview();
+}
+
+function openOvertimeModal(id) {
+  const isEdit = !!id;
+  document.getElementById('otModalTitle').textContent = isEdit ? '근무기록 수정' : '연장·휴일근무 입력';
+  refreshEmployeeSelectors();
+  const r = isEdit ? state.overtime.find(x => x.id === id) : {};
+  document.getElementById('otId').value = id || '';
+  document.getElementById('otDate').value = r.date || today();
+  document.getElementById('otEmp').value = r.empId || '';
+  document.getElementById('otType').value = r.type || 'overtime';
+  document.getElementById('otStart').value = r.startTime || '';
+  document.getElementById('otEnd').value = r.endTime || '';
+  document.getElementById('otHours').value = r.hours || 0;
+  document.getElementById('otHourlyOverride').value = r.hourlyOverride || '';
+  document.getElementById('otMulOverride').value = r.mulOverride || '';
+  document.getElementById('otReason').value = r.reason || '';
+  document.getElementById('otApprover').value = r.approver || '';
+  otPreview();
+  openModal('modalOvertime');
+}
+
+function otPreview() {
+  const emp = getEmp(document.getElementById('otEmp').value);
+  const box = document.getElementById('otPreview');
+  if (!emp) { box.innerHTML = '<div class="empty" style="grid-column:1/-1; padding:14px;">직원을 선택하면 자동 계산됩니다.</div>'; return; }
+  const rec = {
+    type: document.getElementById('otType').value,
+    hours: +document.getElementById('otHours').value || 0,
+    hourlyOverride: document.getElementById('otHourlyOverride').value,
+    mulOverride: document.getElementById('otMulOverride').value
+  };
+  const c = calcOT(emp, rec);
+  box.innerHTML = `
+    <div class="item"><span class="lbl">근무 유형</span><span class="val">${TYPE_LABELS[rec.type]}</span></div>
+    <div class="item"><span class="lbl">근무 시간</span><span class="val">${c.hours} 시간</span></div>
+    <div class="item"><span class="lbl">시급 단가</span><span class="val">${fmt(c.hourly)} 원</span></div>
+    <div class="item"><span class="lbl">가산율</span><span class="val">× ${c.mul}</span></div>
+    <div class="item total"><span class="lbl">지급액 (${fmt(c.hourly)} × ${c.hours}h × ${c.mul})</span><span class="val">${fmt(c.amount)} 원</span></div>
+  `;
+}
+
+async function saveOvertime() {
+  const date = document.getElementById('otDate').value;
+  const empId = document.getElementById('otEmp').value;
+  if (!date) { toast('일자를 입력하세요', 'warn'); return; }
+  if (!empId) { toast('직원을 선택하세요', 'warn'); return; }
+  const hours = +document.getElementById('otHours').value || 0;
+  if (hours <= 0) { toast('근무 시간을 입력하세요', 'warn'); return; }
+  const id = document.getElementById('otId').value || uid();
+  const rec = {
+    id, date, empId,
+    type: document.getElementById('otType').value,
+    startTime: document.getElementById('otStart').value,
+    endTime: document.getElementById('otEnd').value,
+    hours,
+    hourlyOverride: +document.getElementById('otHourlyOverride').value || 0,
+    mulOverride: parseFloat(document.getElementById('otMulOverride').value) || 0,
+    reason: document.getElementById('otReason').value.trim(),
+    approver: document.getElementById('otApprover').value.trim()
+  };
+  try {
+    setSyncStatus('저장 중...', true);
+    await fbDb.collection('overtime').doc(id).set(rec);
+    closeModal('modalOvertime');
+    toast('저장되었습니다', 'success');
+  } catch (e) { toast('저장 실패: ' + e.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+async function deleteOvertime(id) {
+  if (!confirm('이 근무기록을 삭제할까요?')) return;
+  try {
+    setSyncStatus('삭제 중...', true);
+    await fbDb.collection('overtime').doc(id).delete();
+    toast('삭제되었습니다');
+  } catch (e) { toast('삭제 실패: ' + e.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+function renderOvertime() {
+  const tbody = document.querySelector('#otTable tbody');
+  const monthFilter = document.getElementById('otFilterMonth').value;
+  const empFilter = document.getElementById('otFilterEmp').value;
+  const typeFilter = document.getElementById('otFilterType').value;
+  let rows = state.overtime.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  if (monthFilter) rows = rows.filter(r => ymOf(r.date) === monthFilter);
+  if (empFilter) rows = rows.filter(r => r.empId === empFilter);
+  if (typeFilter) rows = rows.filter(r => r.type === typeFilter);
+
+  let totHours = 0, totAmt = 0;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty"><div class="ico">⏱</div>근무 기록이 없습니다.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r => {
+      const emp = getEmp(r.empId);
+      const c = calcOT(emp, r);
+      if (!c) return '';
+      totHours += c.hours;
+      totAmt += c.amount;
+      const reasonHtml = `${escapeHtml(r.reason || '-')}${r.approver ? ` <span class="chip gray">${escapeHtml(r.approver)}</span>` : ''}`;
+      return `<tr>
+        <td class="mono">${r.date}</td>
+        <td class="center">${dayOfWeek(r.date)}</td>
+        <td><strong>${escapeHtml(empName(r.empId))}</strong></td>
+        <td><span class="chip ${r.type.startsWith('night') ? 'warm' : r.type.includes('holiday') ? 'gold' : ''}">${TYPE_LABELS[r.type] || r.type}</span></td>
+        <td class="mono">${r.startTime || '-'}</td>
+        <td class="mono">${r.endTime || '-'}</td>
+        <td class="num">${c.hours}</td>
+        <td class="num">${fmt(c.hourly)}</td>
+        <td class="num">×${c.mul}</td>
+        <td class="num"><strong>${fmt(c.amount)}</strong></td>
+        <td>${reasonHtml}</td>
+        <td><div class="row-actions">
+          <button onclick="openOvertimeModal('${r.id}')">수정</button>
+          <button class="del" onclick="deleteOvertime('${r.id}')">삭제</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('otSumHours').textContent = totHours.toFixed(2);
+  document.getElementById('otSumAmt').textContent = fmt(totAmt);
+}
+
+/* ============================================================
+   SETTLEMENT (Monthly summary)
+============================================================ */
+/**
+ * 공제 계산
+ * @param {Object} emp - 직원 정보
+ * @param {number} grossPay - 매월 총 지급액 (소득세 자동 재계산용)
+ * @returns 공제 항목 객체
+ *
+ * 정책:
+ * - 4대보험 (국민연금/건강보험/장기요양/고용보험): 직원 단가에 저장된 값 그대로
+ *   → 보수월액은 연 1회 신고하여 1년간 고정 (실무 관행)
+ * - 소득세/지방소득세: 매월 총 지급액 기준 자동 재계산
+ *   → 인센티브·연장근무 등 변동급여 모두 반영 (소득세법 원칙)
+ * - 직원이 수동으로 입력한 값(deductIncomeTaxManual=true)은 그 값 사용
+ */
+function calcDeductions(emp, grossPay) {
+  const r = emp.rates || {};
+  const pension = +r.deductPension || 0;
+  const health = +r.deductHealth || 0;
+  const longCare = +r.deductLongCare || 0;
+  const employment = +r.deductEmployment || 0;
+  const other = +r.deductOther || 0;
+
+  // 소득세 자동 재계산 (총 지급액 기준)
+  let incomeTax, localTax, incomeTaxAuto = false;
+  if (r.deductIncomeTaxManual) {
+    // 수동 입력 값 사용
+    incomeTax = +r.deductIncomeTax || 0;
+    localTax = +r.deductLocalTax || 0;
+  } else if (grossPay && grossPay > 0) {
+    // 자동 재계산: 매월 총 지급액 기준
+    const dependents = +r.deductDependents || 1;
+    const children = +r.deductChildren || 0;
+    incomeTax = calcIncomeTax(grossPay, dependents, children);
+    localTax = Math.floor(incomeTax * 0.1 / 10) * 10;
+    incomeTaxAuto = true;
+  } else {
+    // grossPay 없으면 저장값 사용
+    incomeTax = +r.deductIncomeTax || 0;
+    localTax = +r.deductLocalTax || 0;
+  }
+
+  const total = pension + health + longCare + employment + incomeTax + localTax + other;
+  return { pension, health, longCare, employment, incomeTax, localTax, other, total, incomeTaxAuto };
+}
+
+function renderSettlement() {
+  const month = document.getElementById('settleMonth').value || thisMonth();
+  document.getElementById('settleMonth').value = month;
+  const empFilter = document.getElementById('settleEmp').value;
+  document.getElementById('settleMonthLabel').textContent = month;
+
+  const printSub = document.getElementById('printSub');
+  printSub.textContent = `${state.settings.hospitalName || ''} · ${month} 정산`;
+
+  let employees;
+  if (empFilter) {
+    employees = state.employees.filter(e => e.id === empFilter);
+  } else {
+    employees = state.employees.filter(e => e.status === 'active');
+  }
+  const container = document.getElementById('settleContent');
+
+  if (!employees.length) {
+    container.innerHTML = `<div class="card"><div class="empty"><div class="ico">📊</div>등록된 직원이 없습니다.</div></div>`;
+    return;
+  }
+
+  const blocks = employees.map(emp => {
+    const baseSalary = (emp.rates && emp.rates.baseSalary) || 0;
+    const hnRows = state.homeNursing.filter(r => r.empId === emp.id && r.month === month);
+    const otRows = state.overtime.filter(r => r.empId === emp.id && ymOf(r.date) === month);
+    const hnCalcs = hnRows.map(r => ({ rec: r, c: calcHN(emp, r) }));
+    const otCalcs = otRows.map(r => ({ rec: r, c: calcOT(emp, r) })).sort((a,b)=>a.rec.date.localeCompare(b.rec.date));
+    // Sum HN values across multiple records
+    const hnSum = hnCalcs.reduce((acc, h) => {
+      Object.keys(h.c).forEach(k => {
+        if (typeof h.c[k] === 'number') acc[k] = (acc[k] || 0) + h.c[k];
+      });
+      return acc;
+    }, {});
+    const hnTotal = hnCalcs.reduce((s, x) => s + x.c.total, 0);
+    const otTotal = otCalcs.reduce((s, x) => s + x.c.amount, 0);
+    const annualLeaveAmt = calcAnnualLeave(emp);
+    const grossPay = baseSalary + hnTotal + otTotal + annualLeaveAmt;
+    const deductions = calcDeductions(emp, grossPay);  // ← 총 지급액 기준 소득세 재계산
+    const netPay = grossPay - deductions.total;
+    return { emp, baseSalary, hnCalcs, otCalcs, hnSum, hnTotal, otTotal, annualLeaveAmt, grossPay, deductions, netPay };
+  }).filter(b => empFilter || b.grossPay > 0 || b.baseSalary > 0);
+
+  if (!blocks.length) {
+    container.innerHTML = `
+      <div class="card"><div class="empty">
+        <div class="ico">📊</div>
+        <div><strong>${month}</strong> 월의 정산 데이터가 없습니다.</div>
+        <div style="margin-top:8px; font-size:12px;">다른 월을 선택하거나, 가정간호 인센티브·연장근무 기록을 먼저 입력해주세요.</div>
+      </div></div>`;
+    return;
+  }
+
+  const allBase = blocks.reduce((s,b)=>s+b.baseSalary, 0);
+  const allHN = blocks.reduce((s,b)=>s+b.hnTotal, 0);
+  const allOT = blocks.reduce((s,b)=>s+b.otTotal, 0);
+  const allGross = blocks.reduce((s,b)=>s+b.grossPay, 0);
+  const allDeduct = blocks.reduce((s,b)=>s+b.deductions.total, 0);
+  const allNet = blocks.reduce((s,b)=>s+b.netPay, 0);
+
+  let html = `
+    <div class="stats no-print">
+      <div class="stat"><div class="lbl">정산 대상자</div><div class="val">${blocks.length}<span class="unit">명</span></div></div>
+      <div class="stat gold"><div class="lbl">지급액 합계</div><div class="val">${fmt(allGross)}<span class="unit">원</span></div></div>
+      <div class="stat warm"><div class="lbl">공제액 합계</div><div class="val">${fmt(allDeduct)}<span class="unit">원</span></div></div>
+      <div class="stat" style="border-left:3px solid var(--ink);"><div class="lbl">실수령액 합계</div><div class="val">${fmt(allNet)}<span class="unit">원</span></div></div>
+    </div>
+  `;
+
+  blocks.forEach(b => {
+    html += renderPayslip(b, month);
+  });
+  container.innerHTML = html;
+
+  // Bind editable approver titles
+  document.querySelectorAll('.role-edit').forEach(el => {
+    el.addEventListener('blur', () => saveApproverTitle(parseInt(el.dataset.idx), el.value));
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    });
+  });
+}
+
+async function saveApproverTitle(idx, value) {
+  const v = (value || '').trim();
+  if (!state.settings.approverTitles) state.settings.approverTitles = ['센터장','총무','원장'];
+  state.settings.approverTitles[idx] = v || ['센터장','총무','원장'][idx];
+  document.querySelectorAll(`.role-edit[data-idx="${idx}"]`).forEach(el => el.value = state.settings.approverTitles[idx]);
+  // Persist to Firestore
+  try {
+    await fbDb.collection('settings').doc('global').set({ approverTitles: state.settings.approverTitles }, { merge: true });
+  } catch (e) { console.warn('Settings save error:', e); }
+}
+
+function renderPayslip(b, month) {
+  const r = b.emp.rates || {};
+  const titles = state.settings.approverTitles || ['센터장','총무','원장'];
+  const customLbl = (r.customLabel || '기타').replace(/[<>&"']/g, '');
+  const c = b.hnSum;
+  const yearLabel = month.split('-')[0];
+  const monthLabel = parseInt(month.split('-')[1], 10);
+
+  // Build HN line items (only include non-zero ones for cleaner display)
+  const hnLines = [];
+  if (c.baseAmount > 0) hnLines.push(['  ─ 기본 인센티브', c.baseAmount]);
+  if (c.bonusTotal > 0) {
+    if (c.nightBonus > 0) hnLines.push(['  ─ 야간 가산', c.nightBonus]);
+    if (c.weekendBonus > 0) hnLines.push(['  ─ 주말 가산', c.weekendBonus]);
+    if (c.holidayBonus > 0) hnLines.push(['  ─ 휴일 가산', c.holidayBonus]);
+  }
+  if (c.extraAmount > 0) hnLines.push(['  ─ 추가인센', c.extraAmount]);
+  if (c.emergencyAmount > 0) hnLines.push(['  ─ 응급콜', c.emergencyAmount]);
+  if (c.personalAmount > 0) hnLines.push(['  ─ 개인집', c.personalAmount]);
+  if (c.vaccineAmount > 0) hnLines.push(['  ─ 백신/검진', c.vaccineAmount]);
+  if (c.oilAmount > 0) hnLines.push(['  ─ 엔진오일', c.oilAmount]);
+  if (c.customAmount > 0) hnLines.push([`  ─ ${customLbl}`, c.customAmount]);
+  if (c.transport > 0) hnLines.push(['  ─ 차량유지비', c.transport]);
+  if (c.risk > 0) hnLines.push(['  ─ 위험수당', c.risk]);
+  if (c.special > 0) hnLines.push(['  ─ 특수업무수당', c.special]);
+  if (c.other > 0) hnLines.push(['  ─ 기타가산', c.other]);
+
+  return `
+    <div class="payslip">
+      <div class="payslip-head" style="position:relative;">
+        <div class="hospital">${escapeHtml(state.settings.hospitalName || '연세노블병원')}</div>
+        <h2>급 여 명 세 서</h2>
+        <div class="period">${yearLabel}년 ${monthLabel}월분</div>
+        ${b.emp.email ? `<button class="btn sm no-print" onclick="sendPayslipEmail('${b.emp.id}', '${month}')" style="position:absolute;top:12px;right:12px;background:var(--accent);color:#fff;border-color:var(--accent);">✉ 발송</button>` : '<span class="no-print" style="position:absolute;top:12px;right:12px;font-size:11px;color:var(--ink-mute);">이메일 미등록</span>'}
+      </div>
+
+      <div class="payslip-info">
+        <div class="row"><div class="lbl">성명</div><div class="val">${escapeHtml(b.emp.name)}</div></div>
+        <div class="row"><div class="lbl">부서</div><div class="val">${escapeHtml(b.emp.dept || '-')}</div></div>
+        <div class="row"><div class="lbl">직급</div><div class="val">${escapeHtml(b.emp.position || '-')}</div></div>
+        <div class="row"><div class="lbl">입사일</div><div class="val">${b.emp.joinDate || '-'}</div></div>
+      </div>
+
+      <div class="payslip-body">
+        <div class="payslip-col">
+          <h3>지 급 항 목</h3>
+          <table>
+            <tr><td>기본급</td><td>${fmt(b.baseSalary)}</td></tr>
+            ${b.annualLeaveAmt > 0 ? `<tr><td>연차수당 <span style="font-size:11px;color:var(--ink-mute);">(${(b.emp.rates&&b.emp.rates.annualLeave)||0}일)</span></td><td>${fmt(b.annualLeaveAmt)}</td></tr>` : ''}
+            <tr><td>가정간호 인센티브</td><td>${fmt(b.hnTotal)}</td></tr>
+            ${hnLines.map(([lbl, val]) =>
+              `<tr><td class="indent">${lbl}</td><td>${fmt(val)}</td></tr>`
+            ).join('')}
+            <tr><td>연장·휴일근무 수당</td><td>${fmt(b.otTotal)}</td></tr>
+            ${b.otCalcs.map(({rec, c}) =>
+              `<tr><td class="indent">  ─ ${rec.date} ${TYPE_LABELS[rec.type]} ${c.hours}h</td><td>${fmt(c.amount)}</td></tr>`
+            ).join('')}
+            <tr class="subtotal"><td>지급액 합계</td><td>${fmt(b.grossPay)}</td></tr>
+          </table>
+        </div>
+        <div class="payslip-col deduct">
+          <h3>공 제 항 목</h3>
+          <table>
+            <tr><td>국민연금</td><td>${fmt(b.deductions.pension)}</td></tr>
+            <tr><td>건강보험</td><td>${fmt(b.deductions.health)}</td></tr>
+            <tr><td>장기요양보험</td><td>${fmt(b.deductions.longCare)}</td></tr>
+            <tr><td>고용보험</td><td>${fmt(b.deductions.employment)}</td></tr>
+            <tr><td>소득세</td><td>${fmt(b.deductions.incomeTax)}</td></tr>
+            <tr><td>지방소득세</td><td>${fmt(b.deductions.localTax)}</td></tr>
+            <tr><td>기타 공제</td><td>${fmt(b.deductions.other)}</td></tr>
+            <tr class="subtotal"><td>공제액 합계</td><td>${fmt(b.deductions.total)}</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="payslip-net">
+        <div class="lbl">실 수 령 액</div>
+        <div class="val">${fmt(b.netPay)}<span class="unit">원</span></div>
+      </div>
+
+      <div class="payslip-foot">
+        <div class="note">※ 위 금액은 ${yearLabel}년 ${monthLabel}월분 급여로 지급됨을 확인합니다.</div>
+        <div class="approver-box">
+          ${titles.map((t, i) => `
+            <div class="approver-cell">
+              <div class="role"><input class="role-edit no-print" type="text" value="${escapeHtml(t)}" data-idx="${i}" maxlength="10"><span class="print-only">${escapeHtml(t)}</span></div>
+              <div class="stamp">(인)</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Legacy functions removed (renderSettleHN, renderSettleOT) - now part of renderPayslip
+
+
+/* ============================================================
+   이메일 발송 (EmailJS)
+============================================================ */
+const EMAILJS_SERVICE_ID = 'service_oolz62i';
+const EMAILJS_TEMPLATE_ID = 'template_z37is7h';
+
+function buildPayslipHtml(b, month) {
+  const r = b.emp.rates || {};
+  const yearLabel = month.split('-')[0];
+  const monthLabel = parseInt(month.split('-')[1], 10);
+  const fmt2 = n => (n == null || isNaN(n)) ? '0' : Math.round(n).toLocaleString('ko-KR');
+  const hospitalName = state.settings.hospitalName || '연세노블병원';
+  const customLbl = (r.customLabel || '기타').replace(/[<>&"']/g, '');
+  const c = b.hnSum || {};
+
+  const annualLeaveRow = b.annualLeaveAmt > 0
+    ? `<tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">연차수당 (${r.annualLeave||0}일)</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.annualLeaveAmt)}</td></tr>` : '';
+
+  let hnDetailRows = '';
+  const addRow = (lbl, val) => { if(val>0) hnDetailRows += `<tr><td style="padding:5px 12px 5px 24px;border-bottom:1px solid #f0e8d8;background:#fdfaf3;color:#8a7f72;font-size:12px;">  ─ ${lbl}</td><td style="padding:5px 12px;border-bottom:1px solid #f0e8d8;text-align:right;font-family:monospace;font-size:12px;">${fmt2(val)}</td></tr>`; };
+  addRow('기본 인센티브', c.baseAmount); addRow('야간 가산', c.nightBonus);
+  addRow('주말 가산', c.weekendBonus); addRow('휴일 가산', c.holidayBonus);
+  addRow('추가인센', c.extraAmount); addRow('응급콜', c.emergencyAmount);
+  addRow('개인집', c.personalAmount); addRow('백신/검진', c.vaccineAmount);
+  addRow('엔진오일', c.oilAmount); addRow(customLbl, c.customAmount);
+  addRow('차량유지비', c.transport); addRow('위험수당', c.risk); addRow('특수업무수당', c.special);
+
+  const otDetailRows = b.otCalcs.map(({rec, c: oc}) =>
+    `<tr><td style="padding:5px 12px 5px 24px;border-bottom:1px solid #f0e8d8;background:#fdfaf3;color:#8a7f72;font-size:12px;">  ─ ${rec.date} ${TYPE_LABELS[rec.type]} ${oc.hours}h</td><td style="padding:5px 12px;border-bottom:1px solid #f0e8d8;text-align:right;font-family:monospace;font-size:12px;">${fmt2(oc.amount)}</td></tr>`
+  ).join('');
+
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:20px;background:#f6f1e8;font-family:Arial,sans-serif;">
+<div style="max-width:640px;margin:0 auto;background:#fff;border:2px solid #2a2620;border-radius:4px;overflow:hidden;">
+  <div style="text-align:center;padding:24px;background:#fdfaf3;border-bottom:2px solid #2a2620;">
+    <div style="font-size:13px;color:#5b5249;letter-spacing:.15em;margin-bottom:6px;">${hospitalName}</div>
+    <div style="font-size:26px;font-weight:700;letter-spacing:.25em;color:#2a2620;">급 여 명 세 서</div>
+    <div style="font-size:13px;color:#5b5249;margin-top:4px;">${yearLabel}년 ${monthLabel}월분</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;border-bottom:1px solid #2a2620;">
+    <tr>
+      <td style="width:70px;padding:8px 12px;background:#fdfaf3;color:#5b5249;font-weight:500;font-size:13px;border-bottom:1px solid #e5d9c8;border-right:1px solid #e5d9c8;">성명</td>
+      <td style="padding:8px 12px;font-size:13px;font-weight:600;border-bottom:1px solid #e5d9c8;border-right:1px solid #e5d9c8;">${b.emp.name}</td>
+      <td style="width:70px;padding:8px 12px;background:#fdfaf3;color:#5b5249;font-weight:500;font-size:13px;border-bottom:1px solid #e5d9c8;border-right:1px solid #e5d9c8;">부서</td>
+      <td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #e5d9c8;">${b.emp.dept||'-'}</td>
+    </tr>
+    <tr>
+      <td style="width:70px;padding:8px 12px;background:#fdfaf3;color:#5b5249;font-weight:500;font-size:13px;border-right:1px solid #e5d9c8;">직급</td>
+      <td style="padding:8px 12px;font-size:13px;border-right:1px solid #e5d9c8;">${b.emp.position||'-'}</td>
+      <td style="width:70px;padding:8px 12px;background:#fdfaf3;color:#5b5249;font-weight:500;font-size:13px;border-right:1px solid #e5d9c8;">입사일</td>
+      <td style="padding:8px 12px;font-size:13px;">${b.emp.joinDate||'-'}</td>
+    </tr>
+  </table>
+  <table style="width:100%;border-collapse:collapse;">
+    <tr>
+      <th style="padding:10px;background:#e8efe9;color:#4a6a55;text-align:center;font-size:14px;letter-spacing:.1em;border-bottom:1px solid #2a2620;border-right:1px solid #2a2620;">지 급 항 목</th>
+      <th style="padding:10px;background:#f7e9dd;color:#c47a5a;text-align:center;font-size:14px;letter-spacing:.1em;border-bottom:1px solid #2a2620;">공 제 항 목</th>
+    </tr>
+    <tr style="vertical-align:top;">
+      <td style="border-right:1px solid #2a2620;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">기본급</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.baseSalary)}</td></tr>
+          ${annualLeaveRow}
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">가정간호 인센티브</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.hnTotal)}</td></tr>
+          ${hnDetailRows}
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">연장·휴일근무 수당</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.otTotal)}</td></tr>
+          ${otDetailRows}
+          <tr style="background:#fdfaf3;"><td style="padding:9px 12px;font-weight:700;border-top:2px solid #2a2620;">지급액 합계</td><td style="padding:9px 12px;text-align:right;font-family:monospace;font-weight:700;border-top:2px solid #2a2620;">${fmt2(b.grossPay)}</td></tr>
+        </table>
+      </td>
+      <td>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">국민연금</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.deductions.pension)}</td></tr>
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">건강보험</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.deductions.health)}</td></tr>
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">장기요양보험</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.deductions.longCare)}</td></tr>
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">고용보험</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.deductions.employment)}</td></tr>
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">소득세</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.deductions.incomeTax)}</td></tr>
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">지방소득세</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.deductions.localTax)}</td></tr>
+          <tr><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;background:#fdfaf3;color:#5b5249;">기타 공제</td><td style="padding:7px 12px;border-bottom:1px solid #e5d9c8;text-align:right;font-family:monospace;">${fmt2(b.deductions.other)}</td></tr>
+          <tr style="background:#fdfaf3;"><td style="padding:9px 12px;font-weight:700;border-top:2px solid #2a2620;">공제액 합계</td><td style="padding:9px 12px;text-align:right;font-family:monospace;font-weight:700;border-top:2px solid #2a2620;">${fmt2(b.deductions.total)}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <div style="background:#2a2620;color:#fdfaf3;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:16px;font-weight:600;letter-spacing:.25em;">실 수 령 액</span>
+    <span style="font-size:22px;font-weight:700;font-family:monospace;">${fmt2(b.netPay)} <span style="font-size:14px;opacity:.8;">원</span></span>
+  </div>
+  <div style="padding:14px 24px;background:#fdfaf3;">
+    <p style="font-size:11px;color:#8a7f72;margin:0;">※ 위 금액은 ${yearLabel}년 ${monthLabel}월분 급여로 지급됨을 확인합니다.</p>
+  </div>
+</div></body></html>`;
+}
+
+async function sendPayslipEmail(empId, month) {
+  const emp = getEmp(empId);
+  if (!emp || !emp.email) { toast('이메일이 등록되지 않은 직원입니다', 'warn'); return; }
+  const monthLabel = parseInt(month.split('-')[1], 10);
+
+  const hnRows = state.homeNursing.filter(r => r.empId === empId && r.month === month);
+  const otRows = state.overtime.filter(r => r.empId === empId && ymOf(r.date) === month);
+  const hnCalcs = hnRows.map(r => ({ rec: r, c: calcHN(emp, r) }));
+  const otCalcs = otRows.map(r => ({ rec: r, c: calcOT(emp, r) })).sort((a,b)=>a.rec.date.localeCompare(b.rec.date));
+  const hnSum = hnCalcs.reduce((acc, h) => {
+    Object.keys(h.c).forEach(k => { if (typeof h.c[k]==='number') acc[k]=(acc[k]||0)+h.c[k]; });
+    return acc;
+  }, {});
+  const baseSalary = (emp.rates && emp.rates.baseSalary) || 0;
+  const hnTotal = hnCalcs.reduce((s,x)=>s+x.c.total, 0);
+  const otTotal = otCalcs.reduce((s,x)=>s+x.c.amount, 0);
+  const annualLeaveAmt = calcAnnualLeave(emp);
+  const grossPay = baseSalary + hnTotal + otTotal + annualLeaveAmt;
+  const deductions = calcDeductions(emp);
+  const netPay = grossPay - deductions.total;
+  const b = { emp, baseSalary, hnCalcs, otCalcs, hnSum, hnTotal, otTotal, annualLeaveAmt, grossPay, deductions, netPay };
+  const htmlBody = buildPayslipHtml(b, month);
+
+  if (!confirm(`${emp.name} (${emp.email}) 에게 ${monthLabel}월 급여명세서를 발송할까요?`)) return;
+
+  toast('발송 중...', '');
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      name: emp.name,
+      month: monthLabel,
+      to_email: emp.email,
+      html_body: htmlBody
+    });
+    toast(`${emp.name}에게 발송 완료!`, 'success');
+  } catch(e) {
+    console.error('EmailJS error:', e);
+    toast('발송 실패: ' + (e.text || e.message || JSON.stringify(e)), 'warn');
+  }
+}
+
+async function sendAllPayslips() {
+  const month = document.getElementById('settleMonth').value || thisMonth();
+  const empFilter = document.getElementById('settleEmp').value;
+  let employees = empFilter
+    ? state.employees.filter(e => e.id === empFilter)
+    : state.employees.filter(e => e.status === 'active');
+
+  const withEmail = employees.filter(e => e.email);
+  const withoutEmail = employees.filter(e => !e.email);
+  if (!withEmail.length) { toast('이메일이 등록된 직원이 없습니다', 'warn'); return; }
+
+  let msg = `${month} 급여명세서를 ${withEmail.length}명에게 발송합니다.`;
+  if (withoutEmail.length) msg += `\n(이메일 미등록 ${withoutEmail.length}명 제외: ${withoutEmail.map(e=>e.name).join(', ')})`;
+  if (!confirm(msg)) return;
+
+  let ok = 0, fail = 0;
+  for (const emp of withEmail) {
+    try {
+      const monthLabel = parseInt(month.split('-')[1], 10);
+      const hnRows = state.homeNursing.filter(r => r.empId === emp.id && r.month === month);
+      const otRows = state.overtime.filter(r => r.empId === emp.id && ymOf(r.date) === month);
+      const hnCalcs = hnRows.map(r => ({ rec: r, c: calcHN(emp, r) }));
+      const otCalcs = otRows.map(r => ({ rec: r, c: calcOT(emp, r) })).sort((a,b)=>a.rec.date.localeCompare(b.rec.date));
+      const hnSum = hnCalcs.reduce((acc, h) => { Object.keys(h.c).forEach(k => { if(typeof h.c[k]==='number') acc[k]=(acc[k]||0)+h.c[k]; }); return acc; }, {});
+      const baseSalary = (emp.rates && emp.rates.baseSalary) || 0;
+      const hnTotal = hnCalcs.reduce((s,x)=>s+x.c.total, 0);
+      const otTotal = otCalcs.reduce((s,x)=>s+x.c.amount, 0);
+      const annualLeaveAmt = calcAnnualLeave(emp);
+      const grossPay = baseSalary + hnTotal + otTotal + annualLeaveAmt;
+      const deductions = calcDeductions(emp);
+      const netPay = grossPay - deductions.total;
+      const b = { emp, baseSalary, hnCalcs, otCalcs, hnSum, hnTotal, otTotal, annualLeaveAmt, grossPay, deductions, netPay };
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        name: emp.name, month: monthLabel, to_email: emp.email,
+        html_body: buildPayslipHtml(b, month)
+      });
+      ok++;
+      await new Promise(res => setTimeout(res, 600));
+    } catch(e) { fail++; console.error(e); }
+  }
+  toast(`발송 완료: ${ok}명 성공${fail ? ', ' + fail + '명 실패' : ''}`, 'success');
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+function renderDashboard() {
+  const employeesActive = state.employees.filter(e => e.status === 'active').length;
+  const thisMo = thisMonth();
+  const hnThisMonth = state.homeNursing.filter(r => r.month === thisMo);
+  const otThisMonth = state.overtime.filter(r => ymOf(r.date) === thisMo);
+
+  const baseTotal = state.employees.filter(e => e.status === 'active')
+    .reduce((s, e) => s + ((e.rates && e.rates.baseSalary) || 0) + calcAnnualLeave(e), 0);
+  const hnTotal = hnThisMonth.reduce((s, r) => {
+    const c = calcHN(getEmp(r.empId), r);
+    return s + (c?.total || 0);
+  }, 0);
+  const otTotal = otThisMonth.reduce((s, r) => {
+    const c = calcOT(getEmp(r.empId), r);
+    return s + (c?.amount || 0);
+  }, 0);
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat"><div class="lbl">등록된 재직 직원</div><div class="val">${employeesActive}<span class="unit">명</span></div></div>
+    <div class="stat gold"><div class="lbl">월 기본급 합계</div><div class="val">${fmt(baseTotal)}<span class="unit">원</span></div></div>
+    <div class="stat"><div class="lbl">${thisMo} 가정간호 인센티브</div><div class="val">${fmt(hnTotal)}<span class="unit">원</span></div></div>
+    <div class="stat warm"><div class="lbl">${thisMo} 연장근무 합계</div><div class="val">${fmt(otTotal)}<span class="unit">원</span></div></div>
+    <div class="stat" style="border-left:3px solid var(--ink);"><div class="lbl">${thisMo} 총 지급예정</div><div class="val">${fmt(baseTotal + hnTotal + otTotal)}<span class="unit">원</span></div></div>
+  `;
+
+  // Recent
+  const recentHN = state.homeNursing.slice(-5).map(r => {
+    const c = calcHN(getEmp(r.empId), r);
+    return { type:'가정간호', empId:r.empId, when:r.month, amount: c?.total || 0, ts: r.id };
+  });
+  const recentOT = state.overtime.slice(-5).map(r => {
+    const c = calcOT(getEmp(r.empId), r);
+    return { type:TYPE_LABELS[r.type] || r.type, empId:r.empId, when:r.date, amount: c?.amount || 0, ts: r.id };
+  });
+  const all = [...recentHN, ...recentOT].sort((a,b) => b.ts.localeCompare(a.ts)).slice(0, 8);
+
+  const tbody = document.querySelector('#dashRecent tbody');
+  if (!all.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty"><div class="ico">📝</div>아직 기록이 없습니다.</td></tr>`;
+  } else {
+    tbody.innerHTML = all.map(r => `
+      <tr>
+        <td><span class="chip ${r.type === '가정간호' ? '' : 'warm'}">${r.type}</span></td>
+        <td><strong>${escapeHtml(empName(r.empId))}</strong></td>
+        <td class="mono">${r.when}</td>
+        <td class="num">${fmt(r.amount)} 원</td>
+      </tr>
+    `).join('');
+  }
+}
+
+/* ============================================================
+   IMPORT / EXPORT / RESET
+============================================================ */
+function exportJSON() {
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().slice(0,10);
+  a.download = `근무수당_데이터_${ts}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('JSON 파일로 내보냈습니다', 'success');
+}
+
+async function importJSON(ev) {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.employees || !Array.isArray(data.employees)) throw new Error('형식 오류');
+      if (!confirm('기존 데이터를 모두 덮어쓸까요? (Firestore의 모든 직원/인센티브/근무기록이 교체됩니다)')) return;
+      setSyncStatus('가져오는 중...', true);
+      for (const col of ['employees', 'homeNursing', 'overtime']) {
+        const snap = await fbDb.collection(col).get();
+        const docs = snap.docs;
+        for (let i = 0; i < docs.length; i += 400) {
+          const batch = fbDb.batch();
+          docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+      }
+      const upload = async (col, items) => {
+        for (let i = 0; i < items.length; i += 400) {
+          const batch = fbDb.batch();
+          items.slice(i, i + 400).forEach(item => {
+            if (item.id) batch.set(fbDb.collection(col).doc(item.id), item);
+          });
+          await batch.commit();
+        }
+      };
+      await upload('employees', data.employees || []);
+      await upload('homeNursing', data.homeNursing || []);
+      await upload('overtime', data.overtime || []);
+      if (data.settings) {
+        await fbDb.collection('settings').doc('global').set(data.settings, { merge: true });
+      }
+      toast('데이터를 불러왔습니다', 'success');
+    } catch (err) {
+      toast('파일을 읽을 수 없습니다: ' + err.message, 'warn');
+    } finally { setSyncStatus(''); }
+  };
+  reader.readAsText(f);
+  ev.target.value = '';
+}
+
+async function resetAll() {
+  if (!confirm('모든 데이터(직원, 인센티브, 근무기록)를 초기화할까요?\n이 작업은 되돌릴 수 없습니다.\n\n먼저 [백업 다운로드]로 백업을 권장합니다.')) return;
+  if (!confirm('정말 모두 초기화하시겠습니까? Firestore의 모든 데이터가 삭제됩니다.')) return;
+  try {
+    setSyncStatus('초기화 중...', true);
+    for (const col of ['employees', 'homeNursing', 'overtime']) {
+      const snap = await fbDb.collection(col).get();
+      const docs = snap.docs;
+      for (let i = 0; i < docs.length; i += 400) {
+        const batch = fbDb.batch();
+        docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+    toast('초기화되었습니다');
+  } catch (e) { toast('초기화 실패: ' + e.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+async function loadSample() {
+  if (state.employees.length > 0) return;
+  const sampleEmp = {
+    id: uid(), name: '예시 직원', position: '책임간호사', dept: '가정간호팀', joinDate: '2020-03-02', status: 'active',
+    rates: {
+      baseSalary: 3500000,
+      base: 15000, night: 5000, weekend: 3000, holiday: 5000,
+      extra: 10000, extraThreshold: 120,
+      emergency: 30000, personal: 20000, vaccine: 15000, oil: 50000,
+      customLabel: '교육수당', customRate: 20000,
+      transport: 300000, risk: 50000, special: 30000,
+      deductPension: 157500, deductHealth: 124075, deductLongCare: 16070,
+      deductEmployment: 31500, deductIncomeTax: 84850, deductLocalTax: 8480, deductOther: 0,
+      hourly: 18000,
+      rateOTMul: 1.5, rateNightMul: 1.5, rateNightOTMul: 2.0, rateHolMul: 1.5, rateNightHolMul: 2.0
+    }
+  };
+  try {
+    setSyncStatus('샘플 추가 중...', true);
+    await fbDb.collection('employees').doc(sampleEmp.id).set(sampleEmp);
+    toast('예시 데이터가 추가되었습니다.', 'success');
+  } catch (e) { toast('실패: ' + e.message, 'warn'); }
+  finally { setSyncStatus(''); }
+}
+
+function refreshAll() {
+  refreshEmployeeSelectors();
+  renderDashboard();
+  renderEmployees();
+  renderHomeNursing();
+  renderOvertime();
+  renderSettlement();
+}
+
+/* ============================================================
+   UTILS
+============================================================ */
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+/* ============================================================
+   SAMPLE DATA (initial - removable)
+============================================================ */
+// loadSample is defined above (async Firestore version)
+
+/* Setup touch tracking for rate input fields */
+function setupTouchTracking() {
+  const fields = [
+    'hnTransport','hnRisk','hnSpecial','hnOther',
+    'hnExtraCount','hnExtraRate','hnEmergencyRate','hnPersonalRate','hnVaccineRate','hnOilRate','hnCustomRate'
+  ];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => el.dataset.touched = '1');
+  });
+  const empSel = document.getElementById('hnEmp');
+  if (empSel) empSel.addEventListener('change', () => updateCustomLabel());
+}
+
+/* ============================================================
+   FIREBASE AUTH & REAL-TIME SYNC
+============================================================ */
+let _unsubscribers = [];
+
+fbAuth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('currentUser').textContent = user.email;
+    setupRealtimeSync();
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('currentUser').textContent = '';
+    teardownSync();
+    state = { version: STATE_VERSION, employees: [], homeNursing: [], overtime: [], settings: { hospitalName: '연세노블병원', approverTitles: ['센터장','총무','원장'] } };
+    refreshAll();
+  }
+});
+
+async function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginError');
+  err.classList.remove('show');
+  if (!email || !pw) { err.textContent = '이메일과 비밀번호를 입력하세요'; err.classList.add('show'); return; }
+  btn.disabled = true; btn.textContent = '로그인 중...';
+  try {
+    await fbAuth.signInWithEmailAndPassword(email, pw);
+    document.getElementById('loginPassword').value = '';
+  } catch (e) {
+    let msg = '로그인 실패';
+    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') msg = '이메일 또는 비밀번호가 올바르지 않습니다';
+    else if (e.code === 'auth/user-not-found') msg = '등록되지 않은 계정입니다';
+    else if (e.code === 'auth/invalid-email') msg = '이메일 형식이 올바르지 않습니다';
+    else if (e.code === 'auth/too-many-requests') msg = '시도 횟수 초과. 잠시 후 다시 시도하세요';
+    else if (e.code === 'auth/network-request-failed') msg = '네트워크 연결을 확인하세요';
+    else msg += ': ' + e.message;
+    err.textContent = msg; err.classList.add('show');
+  } finally { btn.disabled = false; btn.textContent = '로그인'; }
+}
+
+async function logout() {
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  await fbAuth.signOut();
+  toast('로그아웃 되었습니다');
+}
+
+function setSyncStatus(text, syncing) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle('syncing', !!syncing);
+}
+
+function setupRealtimeSync() {
+  setSyncStatus('연결 중...', true);
+  // Listen to settings doc
+  const unsubSet = fbDb.collection('settings').doc('global').onSnapshot(doc => {
+    if (doc.exists) {
+      const data = doc.data();
+      state.settings = { ...state.settings, ...data };
+      // Re-render settlement to refresh approver titles
+      if (document.querySelector('#panel-settlement.active')) renderSettlement();
+    }
+  });
+  _unsubscribers.push(unsubSet);
+
+  const collections = [
+    { name: 'employees', target: 'employees' },
+    { name: 'homeNursing', target: 'homeNursing' },
+    { name: 'overtime', target: 'overtime' }
+  ];
+  let initial = collections.length;
+  collections.forEach(({name, target}) => {
+    const unsub = fbDb.collection(name).onSnapshot(snap => {
+      state[target] = snap.docs.map(d => d.data());
+      refreshAll();
+      if (initial > 0) {
+        initial--;
+        if (initial === 0) {
+          setSyncStatus('동기화됨');
+          setTimeout(() => setSyncStatus(''), 1500);
+        }
+      } else {
+        setSyncStatus('동기화됨');
+        setTimeout(() => setSyncStatus(''), 1200);
+      }
+    }, err => {
+      console.error(name + ' sync error:', err);
+      setSyncStatus('동기화 오류');
+      toast('데이터 동기화 오류: ' + err.message, 'warn');
+    });
+    _unsubscribers.push(unsub);
+  });
+}
+
+function teardownSync() {
+  _unsubscribers.forEach(u => { try { u(); } catch(e){} });
+  _unsubscribers = [];
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+document.getElementById('hnFilterMonth').value = thisMonth();
+document.getElementById('otFilterMonth').value = thisMonth();
+document.getElementById('settleMonth').value = thisMonth();
+
+window.addEventListener('DOMContentLoaded', () => {
+  setupTouchTracking();
+  // Auth state listener will trigger setupRealtimeSync once user logs in
+});
+</script>
+</body>
+</html>
